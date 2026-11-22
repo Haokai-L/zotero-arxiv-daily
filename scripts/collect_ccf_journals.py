@@ -16,6 +16,7 @@ from time import sleep
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+import ccf_journal_quality as quality
 
 import yaml
 
@@ -23,13 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "ccf-preview"
 VENUES_PATH = ROOT / "config" / "ccf_a_venues.yaml"
 API = "https://api.openalex.org"
-PER_VENUE = 10
-
-# Alternate formally used titles; do not use fuzzy matches to confer a CCF-A label.
-ALIASES = {
-    "TON": {"IEEE Transactions on Networking", "IEEE/ACM Transactions on Networking"},
-}
-
+PER_VENUE = 30
 
 def get_json(path: str, params: dict, api_key: str) -> dict:
     url = f"{API}{path}?{urlencode(params)}"
@@ -57,116 +52,89 @@ def get_json(path: str, params: dict, api_key: str) -> dict:
     raise RuntimeError(f"OpenAlex request failed after retries: {path}: {last_error}")
 
 
-def source_matches(source: dict, titles: set[str]) -> bool:
-    return source.get("display_name", "").strip().casefold() in {x.casefold() for x in titles}
 
+MAP_PATH = ROOT / "config" / "journal_source_map.yaml"
+COLUMNS = ["venue","field","status","reason","source_openalex_id",
+           "source_title","title","year","date","doi","openalex_id","paper_type"]
 
-def inspect_journal(name: str, info: dict, key: str) -> tuple[dict, list[dict]]:
-    full_name = info["full_name"].strip()
-    titles = {full_name} | ALIASES.get(name, set())
-    data = get_json("/sources", {"search": full_name, "per_page": 25}, key)
-    candidates = data.get("results", [])
-    exact = {item["id"]: item for item in candidates if source_matches(item, titles)}
-
-    report = {
-        "venue": name,
-        "field": info["field"],
-        "expected_title": full_name,
-        "status": "REVIEW_NO_EXACT_TITLE_MATCH",
-        "candidates": [
-            {"id": x.get("id"), "title": x.get("display_name"), "issn": x.get("issn")}
-            for x in candidates[:5]
-        ],
-        "selected_source": None,
-        "papers_in_preview": 0,
-        "warning": "Title/ISSN and publisher evidence must be checked before assigning CCF-A labels",
-    }
-    if len(exact) != 1:
-        if len(exact) > 1:
-            report["status"] = "REVIEW_AMBIGUOUS_SOURCE"
-        return report, []
-
-    source = next(iter(exact.values()))
-    source_id = source["id"].rsplit("/", 1)[-1]
-    report["selected_source"] = {
-        "id": source_id,
-        "title": source.get("display_name"),
-        "issn": source.get("issn"),
-        "issn_l": source.get("issn_l"),
-        "type": source.get("type"),
-    }
-    report["status"] = "TITLE_MATCHED_AWAITING_ISSN_REVIEW"
-    works = get_json("/works", {
-        "filter": f"primary_location.source.id:{source_id},from_publication_date:2024-01-01,to_publication_date:{date.today().isoformat()}",
-        "per_page": PER_VENUE,
-        "sort": "publication_date:desc",
-        "select": "id,title,doi,publication_date,publication_year,primary_location,type",
-    }, key).get("results", [])
-    rows = []
-    for w in works:
-        loc = w.get("primary_location") or {}
-        loc_source = loc.get("source") or {}
-        observed_id = str(loc_source.get("id") or "").rsplit("/", 1)[-1]
-        if observed_id != source_id:
-            continue
-        rows.append({
-            "venue_candidate": name,
-            "field": info["field"],
-            "match_status": "PENDING_MANUAL_SOURCE_REVIEW",
-            "source_title": source.get("display_name", ""),
-            "source_openalex_id": source_id,
-            "paper_title": w.get("title", ""),
-            "publication_year": w.get("publication_year", ""),
-            "publication_date": w.get("publication_date", ""),
-            "doi": w.get("doi") or "",
-            "paper_openalex_id": w.get("id") or "",
-            "paper_type": w.get("type") or "",
-        })
-    report["papers_in_preview"] = len(rows)
-    if not rows:
-        report["status"] = "REVIEW_NO_RECENT_WORKS"
-    return report, rows
-
-
-def main() -> None:
-    api_key = os.environ.get("OPENALEX_API_KEY", "").strip()
-    if not api_key:
-        raise SystemExit("Missing OPENALEX_API_KEY")
-    config = yaml.safe_load(VENUES_PATH.read_text(encoding="utf-8"))
-    venues = config["venues"]
-    kinds = Counter(v.get("kind") for v in venues.values())
-    fields = Counter(v.get("field") for v in venues.values())
-    if len(venues) != 16 or kinds != {"journal": 6, "conference": 10} or fields != {"networking": 7, "security": 9}:
-        raise SystemExit("CCF venue configuration must list 6 journals, 10 conferences, and 7 networking/9 security sources")
-    OUT.mkdir(parents=True, exist_ok=True)
-    reports, rows = [], []
-    for name, info in venues.items():
-        if info["kind"] != "journal":
-            continue
-        print(f"Checking {name}: {info['full_name']}", flush=True)
-        try:
-            report, papers = inspect_journal(name, info, api_key)
-        except Exception as exc:
-            report, papers = {"venue": name, "status": "API_ERROR", "reason": str(exc)}, []
-        reports.append(report)
-        rows.extend(papers)
-        print(f"  {report['status']}; preview papers: {len(papers)}", flush=True)
-        selected = report.get("selected_source")
-        if selected:
-            print(f"  Candidate ID: {selected['id']}; ISSNs: {selected.get('issn')}", flush=True)
-        sleep(0.7)
-    (OUT / "journal_source_audit.json").write_text(json.dumps(reports, ensure_ascii=False, indent=2), encoding="utf-8")
-    fields_out = ["venue_candidate", "field", "match_status", "source_title", "source_openalex_id", "paper_title", "publication_year", "publication_date", "doi", "paper_openalex_id", "paper_type"]
-    with (OUT / "journal_papers_preview.csv").open("w", encoding="utf-8-sig", newline="") as fp:
-        writer = csv.DictWriter(fp, fieldnames=fields_out)
+def write_csv(filename, rows):
+    with (OUT / filename).open("w", encoding="utf-8-sig", newline="") as fp:
+        writer = csv.DictWriter(fp, fieldnames=COLUMNS)
         writer.writeheader()
         writer.writerows(rows)
-    print(f"\nCompleted: {len(reports)} journals attempted, {len(rows)} papers in CSV", flush=True)
-    print("Output: ccf-preview/journal_source_audit.json and journal_papers_preview.csv", flush=True)
-    if len(reports) != 6 or any(r["status"] == "API_ERROR" for r in reports):
-        raise SystemExit("Some sources had API errors. Inspect the saved audit artifact.")
-    print("PASS: Data collection completed. Source identities still require manual review.", flush=True)
 
-
+def main():
+    key = os.environ.get("OPENALEX_API_KEY", "").strip()
+    if not key:
+        raise SystemExit("OPENALEX_API_KEY is missing")
+    venues = yaml.safe_load(VENUES_PATH.read_text(encoding="utf-8"))["venues"]
+    names = {n for n,v in venues.items() if v["kind"]=="journal"}
+    mapping = yaml.safe_load(MAP_PATH.read_text(encoding="utf-8"))["journals"]
+    if len(venues)!=16 or len(names)!=6 or set(mapping)!=names:
+        raise SystemExit("Source-map and CCF whitelist mismatch")
+    OUT.mkdir(parents=True, exist_ok=True)
+    cutoff = min(date.today().isoformat(), "2026-11-22")
+    audits, rows = [], []
+    for name, info in mapping.items():
+        audit={"venue":name,"status":"CHECKED","sources":[]}
+        for mapped in info["sources"]:
+            record={"id":mapped["id"],"title":mapped["title"]}
+            print(f"Checking {name}/{mapped['id']}", flush=True)
+            try:
+                source = get_json("/sources/"+mapped["id"], {}, key)
+                check = quality.validate_source(source, mapped)
+                record["source_validation"]=check
+                record["observed_issn"]=source.get("issn")
+                if check != "SOURCE_ID_TITLE_ISSN_MATCH":
+                    audit["status"]="REVIEW_SOURCE"
+                    audit["sources"].append(record)
+                    continue
+                lo=f"{mapped['from_year']}-01-01"
+                hi=min(cutoff, f"{mapped['to_year']}-12-31")
+                if hi < lo:
+                    record["sample_count"]=0
+                    audit["sources"].append(record)
+                    continue
+                works = get_json("/works", {
+                    "filter":f"primary_location.source.id:{mapped['id']},from_publication_date:{lo},to_publication_date:{hi}",
+                    "per_page":PER_VENUE, "sort":"publication_date:desc",
+                    "select":"id,title,doi,publication_date,publication_year,primary_location,type",
+                }, key).get("results",[])
+                record["sample_count"]=len(works)
+                rows.extend(quality.classify(w,name,info["field"],mapped,cutoff) for w in works)
+            except Exception as exc:
+                record["source_validation"]="API_ERROR"
+                record["error"]=str(exc)
+                audit["status"]="API_ERROR"
+            audit["sources"].append(record)
+            sleep(0.4)
+        audits.append(audit)
+    records = quality.deduplicate(rows)
+    accepted, review, excluded, per_venue = [], [], [], Counter()
+    for row in records:
+        if row["status"]=="PASS_METADATA_RULES":
+            if per_venue[row["venue"]] < 10:
+                accepted.append(row)
+                per_venue[row["venue"]]+=1
+        elif row["status"]=="REVIEW":
+            review.append(row)
+        else:
+            excluded.append(row)
+    write_csv("journal_papers_preview.csv",accepted)
+    write_csv("journal_review.csv",review)
+    write_csv("journal_excluded.csv",excluded)
+    (OUT/"journal_source_audit.json").write_text(
+        json.dumps(audits,ensure_ascii=False,indent=2),encoding="utf-8")
+    summary={"note":"Preview only; PASS_METADATA_RULES is not publisher/Crossref verification.",
+             "sampled":len(rows),"accepted":len(accepted),"review":len(review),
+             "excluded":len(excluded),"accepted_by_venue":dict(per_venue)}
+    (OUT/"summary.json").write_text(
+        json.dumps(summary,ensure_ascii=False,indent=2),encoding="utf-8")
+    print("SUMMARY "+json.dumps(summary),flush=True)
+    if any(a["status"]!="CHECKED" for a in audits):
+        raise SystemExit("Source mismatch or API error. Inspect audit artifact.")
+    if any(per_venue[v]==0 for v in mapping):
+        raise SystemExit("At least one journal has no accepted metadata preview.")
+    print("PASS: six-journal preview; publisher verification still pending.",flush=True)
 if __name__ == "__main__":
     main()

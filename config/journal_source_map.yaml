@@ -1,0 +1,28 @@
+# R3-2: audited OpenAlex/ISSN source identities, NOT proof of every work's CCF classification.
+schema_version: 1
+journals:
+  JSAC:
+    field: networking
+    sources:
+      - {id: S90422530, title: "IEEE Journal on Selected Areas in Communications", issn: ["0733-8716", "1558-0008"], doi_series: "jsac", from_year: 2024, to_year: 2026}
+  TMC:
+    field: networking
+    sources:
+      - {id: S69141925, title: "IEEE Transactions on Mobile Computing", issn: ["1536-1233", "1558-0660", "2161-9875"], doi_series: "tmc", from_year: 2024, to_year: 2026}
+  TON:
+    field: networking
+    sources:
+      - {id: S62238642, title: "IEEE/ACM Transactions on Networking", issn: ["1063-6692", "1558-2566"], doi_series: "tnet", from_year: 2024, to_year: 2024, legacy_review: true}
+      - {id: S5407042750, title: "IEEE Transactions on Networking", issn: ["2998-4157"], doi_series: "ton", from_year: 2025, to_year: 2026}
+  TDSC:
+    field: security
+    sources:
+      - {id: S133795288, title: "IEEE Transactions on Dependable and Secure Computing", issn: ["1545-5971", "1941-0018", "2160-9209"], doi_series: "tdsc", from_year: 2024, to_year: 2026}
+  TIFS:
+    field: security
+    sources:
+      - {id: S61310614, title: "IEEE Transactions on Information Forensics and Security", issn: ["1556-6013", "1556-6021"], doi_series: "tifs", from_year: 2024, to_year: 2026}
+  JOC:
+    field: security
+    sources:
+      - {id: S190936789, title: "Journal of Cryptology", issn: ["0933-2790", "1432-1378"], doi_series: "s00145-", from_year: 2024, to_year: 2026}

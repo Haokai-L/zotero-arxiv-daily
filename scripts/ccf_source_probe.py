@@ -1,63 +1,121 @@
 
+import json
 from collections import Counter
 from pathlib import Path
-from time import sleep
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-import feedparser
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "config" / "ccf_a_venues.yaml"
 
 
-def main():
+def validate_venues():
     with CONFIG.open(encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     venues = data["venues"]
+
     fields = Counter(v["field"] for v in venues.values())
     kinds = Counter(v["kind"] for v in venues.values())
 
-    assert len(venues) == 16, "Expected 16 venues"
+    assert len(venues) == 16
     assert fields == {"networking": 7, "security": 9}
     assert kinds == {"journal": 6, "conference": 10}
 
     for name, info in venues.items():
-        prefix = "journals/" if info["kind"] == "journal" else "conf/"
+        prefix = (
+            "journals/"
+            if info["kind"] == "journal"
+            else "conf/"
+        )
         assert info["dblp_stream"].startswith(prefix), name
 
     print("PASS: 16 CCF A venues validated", flush=True)
+    return venues
 
-    for name in ["TON", "TDSC", "NSDI"]:
-        stream = venues[name]["dblp_stream"]
-        url = f"https://dblp.org/feed/streams/{stream}.rss"
 
-        print(f"\nChecking {name}: {url}", flush=True)
+def check_dblp(name, venue):
+    stream = venue["dblp_stream"]
 
-        request = Request(
-            url,
-            headers={"User-Agent": "CCF-Daily-Research-Probe/0.1"},
-        )
+    # Example:
+    # stream:streams/journals/ton:
+    query = f"stream:streams/{stream}:"
 
-        with urlopen(request, timeout=30) as response:
-            content = response.read()
+    params = urlencode({
+        "q": query,
+        "h": 5,
+        "format": "json",
+        "c": 0,
+    })
 
-        feed = feedparser.parse(content)
+    url = f"https://dblp.org/search/publ/api?{params}"
 
-        if not feed.version:
-            raise RuntimeError(f"Invalid RSS response: {name}")
+    print(f"\nChecking {name}", flush=True)
+    print(f"Query: {query}", flush=True)
 
+    request = Request(
+        url,
+        headers={
+            "User-Agent": "CCF-Daily-Research-Probe/0.1",
+            "Accept": "application/json",
+        },
+    )
+
+    with urlopen(request, timeout=30) as response:
+        raw = response.read()
         print(
-            f"PASS: {name}, {len(feed.entries)} entries",
+            f"HTTP status: {response.status}",
+            flush=True,
+        )
+        print(
+            f"Content-Type: {response.headers.get('Content-Type')}",
             flush=True,
         )
 
-        for paper in feed.entries[:2]:
-            print("Title:", paper.get("title", "N/A"))
-            print("Link:", paper.get("link", "N/A"))
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        print("Response preview:", repr(raw[:250]))
+        raise RuntimeError(
+            f"DBLP did not return valid JSON for {name}"
+        ) from exc
 
-        sleep(2)
+    hits = (
+        data.get("result", {})
+        .get("hits", {})
+        .get("hit", [])
+    )
+
+    if isinstance(hits, dict):
+        hits = [hits]
+
+    if not hits:
+        raise RuntimeError(
+            f"No DBLP results found for {name}: {query}"
+        )
+
+    print(
+        f"PASS: {name}, {len(hits)} sample records",
+        flush=True,
+    )
+
+    for hit in hits[:3]:
+        info = hit.get("info", {})
+        print("Title:", info.get("title", "N/A"))
+        print("Venue:", info.get("venue", "N/A"))
+        print("Year:", info.get("year", "N/A"))
+        print("DOI:", info.get("doi", "N/A"))
+        print("URL:", info.get("url", "N/A"))
+        print("---")
+
+
+def main():
+    venues = validate_venues()
+
+    for name in ["TON", "TDSC", "NSDI"]:
+        check_dblp(name, venues[name])
 
     print("\nCCF source probe completed.", flush=True)
 

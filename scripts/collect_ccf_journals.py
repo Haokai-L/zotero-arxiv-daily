@@ -110,24 +110,30 @@ def main():
             sleep(0.4)
         audits.append(audit)
     records = quality.deduplicate(rows)
-    accepted, review, excluded, per_venue = [], [], [], Counter()
+    accepted, overflow, review, excluded, per_venue = [], [], [], [], Counter()
     for row in records:
         if row["status"]=="PASS_METADATA_RULES":
             if per_venue[row["venue"]] < 10:
                 accepted.append(row)
                 per_venue[row["venue"]]+=1
+            else:
+                overflow.append(row)
         elif row["status"]=="REVIEW":
             review.append(row)
         else:
             excluded.append(row)
+    assert len(records) == sum(map(len, (accepted, overflow, review, excluded))), "Audit count mismatch"
     write_csv("journal_papers_preview.csv",accepted)
+    write_csv("journal_accepted_overflow.csv",overflow)
     write_csv("journal_review.csv",review)
     write_csv("journal_excluded.csv",excluded)
     (OUT/"journal_source_audit.json").write_text(
         json.dumps(audits,ensure_ascii=False,indent=2),encoding="utf-8")
     summary={"note":"Preview only; PASS_METADATA_RULES is not publisher/Crossref verification.",
-             "sampled":len(rows),"accepted":len(accepted),"review":len(review),
-             "excluded":len(excluded),"accepted_by_venue":dict(per_venue)}
+             "sampled":len(rows),"accepted_preview":len(accepted),
+             "accepted_overflow":len(overflow),"review":len(review),
+             "excluded":len(excluded),"accepted_by_venue":dict(per_venue),
+             "reconciled":len(rows)==len(accepted)+len(overflow)+len(review)+len(excluded)}
     (OUT/"summary.json").write_text(
         json.dumps(summary,ensure_ascii=False,indent=2),encoding="utf-8")
     print("SUMMARY "+json.dumps(summary),flush=True)

@@ -1,0 +1,110 @@
+
+# CCF 第七版（2026）计算机网络 + 网络与信息安全
+# 此文件仅定义来源白名单，尚未执行论文抓取
+
+catalog:
+  edition: 7
+  year: 2026
+  rank: A
+
+venues:
+
+  # ========== 计算机网络：3本期刊 ==========
+  JSAC:
+    field: networking
+    kind: journal
+    full_name: IEEE Journal on Selected Areas in Communications
+    dblp_stream: journals/jsac
+
+  TMC:
+    field: networking
+    kind: journal
+    full_name: IEEE Transactions on Mobile Computing
+    dblp_stream: journals/tmc
+
+  TON:
+    field: networking
+    kind: journal
+    full_name: IEEE Transactions on Networking
+    dblp_stream: journals/ton
+
+  # ========== 计算机网络：4个会议 ==========
+  SIGCOMM:
+    field: networking
+    kind: conference
+    full_name: ACM SIGCOMM
+    dblp_stream: conf/sigcomm
+
+  MobiCom:
+    field: networking
+    kind: conference
+    full_name: ACM International Conference on Mobile Computing and Networking
+    dblp_stream: conf/mobicom
+
+  INFOCOM:
+    field: networking
+    kind: conference
+    full_name: IEEE International Conference on Computer Communications
+    dblp_stream: conf/infocom
+
+  NSDI:
+    field: networking
+    kind: conference
+    full_name: USENIX Symposium on Networked Systems Design and Implementation
+    dblp_stream: conf/nsdi
+
+  # ========== 网络与信息安全：3本期刊 ==========
+  TDSC:
+    field: security
+    kind: journal
+    full_name: IEEE Transactions on Dependable and Secure Computing
+    dblp_stream: journals/tdsc
+
+  TIFS:
+    field: security
+    kind: journal
+    full_name: IEEE Transactions on Information Forensics and Security
+    dblp_stream: journals/tifs
+
+  JOC:
+    field: security
+    kind: journal
+    full_name: Journal of Cryptology
+    dblp_stream: journals/joc
+
+  # ========== 网络与信息安全：6个会议 ==========
+  CCS:
+    field: security
+    kind: conference
+    full_name: ACM Conference on Computer and Communications Security
+    dblp_stream: conf/ccs
+
+  EUROCRYPT:
+    field: security
+    kind: conference
+    full_name: International Conference on the Theory and Applications of Cryptographic Techniques
+    dblp_stream: conf/eurocrypt
+
+  "S&P":
+    field: security
+    kind: conference
+    full_name: IEEE Symposium on Security and Privacy
+    dblp_stream: conf/sp
+
+  CRYPTO:
+    field: security
+    kind: conference
+    full_name: International Cryptology Conference
+    dblp_stream: conf/crypto
+
+  USENIX_SECURITY:
+    field: security
+    kind: conference
+    full_name: USENIX Security Symposium
+    dblp_stream: conf/uss
+
+  NDSS:
+    field: security
+    kind: conference
+    full_name: Network and Distributed System Security Symposium
+    dblp_stream: conf/ndss

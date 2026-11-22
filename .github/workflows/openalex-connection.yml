@@ -1,0 +1,126 @@
+
+name: OpenAlex Connection Check
+
+on:
+  push:
+    branches:
+      - feature/ccf-a-daily
+    paths:
+      - ".github/workflows/openalex-connection.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check-openalex:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Verify OpenAlex API and journal records
+        env:
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from urllib.parse import urlencode
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError, URLError
+
+          key = os.environ.get("OPENALEX_API_KEY", "").strip()
+
+          if not key:
+              raise SystemExit("FAIL: OPENALEX_API_KEY is missing")
+
+          def fetch(endpoint, params):
+              url = (
+                  "https://api.openalex.org"
+                  + endpoint
+                  + "?"
+                  + urlencode(params)
+              )
+              req = Request(
+                  url,
+                  headers={
+                      "Authorization": f"Bearer {key}",
+                      "Accept": "application/json",
+                  },
+              )
+              try:
+                  with urlopen(req, timeout=25) as response:
+                      if response.status != 200:
+                          raise RuntimeError(
+                              f"Unexpected status: {response.status}"
+                          )
+                      return json.load(response)
+              except HTTPError as exc:
+                  raise RuntimeError(
+                      f"OpenAlex HTTP {exc.code}"
+                  ) from exc
+              except URLError as exc:
+                  raise RuntimeError(
+                      f"OpenAlex network error: {exc.reason}"
+                  ) from exc
+
+          print("STEP 1: Find official journal source", flush=True)
+
+          target = "IEEE Transactions on Mobile Computing"
+          data = fetch("/sources", {
+              "search": target,
+              "per_page": 5,
+          })
+
+          matches = [
+              item for item in data.get("results", [])
+              if item.get("display_name", "").casefold()
+                 == target.casefold()
+          ]
+
+          if len(matches) != 1:
+              print(
+                  "Source candidates:",
+                  [x.get("display_name") for x in data.get("results", [])]
+              )
+              raise RuntimeError(
+                  "Journal source requires manual verification"
+              )
+
+          source = matches[0]
+          source_id = source["id"].rsplit("/", 1)[-1]
+
+          print("PASS: Source identified")
+          print("Name:", source["display_name"])
+          print("OpenAlex ID:", source_id)
+          print("ISSN:", source.get("issn", []))
+
+          print("\nSTEP 2: Retrieve papers from 2024 onward", flush=True)
+
+          papers = fetch("/works", {
+              "filter": (
+                  f"primary_location.source.id:{source_id},"
+                  "from_publication_date:2024-01-01,"
+                  "to_publication_date:2026-11-22"
+              ),
+              "per_page": 3,
+              "select": (
+                  "id,title,doi,publication_year,"
+                  "primary_location"
+              ),
+          })
+
+          results = papers.get("results", [])
+
+          if not results:
+              raise RuntimeError(
+                  "No matching journal papers returned"
+              )
+
+          for paper in results:
+              print("\nTitle:", paper.get("title"))
+              print("Year:", paper.get("publication_year"))
+              print("DOI:", paper.get("doi"))
+              print("OpenAlex:", paper.get("id"))
+
+          print("\nPASS: OpenAlex connection and paper retrieval")
+          PY

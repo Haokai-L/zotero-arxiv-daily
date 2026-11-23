@@ -115,7 +115,7 @@ class IntegratedTests(unittest.TestCase):
         self.store.fail_writes={2}
         with self.assertRaises(PersistenceError):
             self.coordinator.deliver(HISTORY,ROWS,"2026-11-23",b"x")
-        task=next(iter(self.store.ledger["batches"].values()))
+        task=next(iter(self.store.ledger["batches"]))
         self.assertEqual(self.store.ledger["batches"][task]["state"],"ATTEMPTING")
         with self.assertRaises(core.SafetyError):
             self.coordinator.deliver(HISTORY,[{"paper_key":"another"}],"2026-11-24",b"x")

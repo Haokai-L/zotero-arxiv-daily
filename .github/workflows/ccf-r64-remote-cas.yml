@@ -1,0 +1,77 @@
+name: CCF R6-4 GitHub Remote CAS and Crash Test (No Email)
+on:
+  push:
+    branches: [feature/ccf-a-daily]
+    paths:
+      - '.github/workflows/ccf-r64-remote-cas.yml'
+      - 'scripts/ccf_r64_remote_store.py'
+      - 'scripts/ccf_r64_probe.py'
+      - 'tests/test_ccf_r64.py'
+      - 'docs/ccf-r64-remote-cas.md'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: ccf-r64-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  remote-probe:
+    if: github.ref == 'refs/heads/feature/ccf-a-daily'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PROBE: data/r64_probes/${{ github.run_id }}-${{ github.run_attempt }}.json
+      REPO: Haokai-L/zotero-arxiv-daily
+      RUN_ID: ${{ github.run_id }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout feature branch only
+        uses: actions/checkout@v6
+        with:
+          ref: feature/ccf-a-daily
+          persist-credentials: false
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install minimal dependencies
+        run: python -m pip install 'PyYAML>=6,<7'
+      - name: Run 20 offline mock-CAS and state tests
+        run: python -m unittest discover -s tests -p test_ccf_r64.py -v
+      - name: Fingerprint production state and forbidden paths
+        run: |
+          sha256sum data/ccf_sent_history.json > .r64-history.sha
+          sha256sum data/ccf_delivery_ledger.json > .r64-ledger.sha
+          git rev-parse HEAD > .r64-head
+      - name: CREATE remote synthetic probe
+        run: python scripts/ccf_r64_probe.py init --repo "$REPO" --probe "$PROBE" --run-id "$RUN_ID"
+      - name: PERSIST PREPARED state in a fresh process
+        run: python scripts/ccf_r64_probe.py prepare --repo "$REPO" --probe "$PROBE" --run-id "$RUN_ID" --stale-sha .r64-stale-version
+      - name: PERSIST ATTEMPTING state before any hypothetical handoff
+        run: python scripts/ccf_r64_probe.py attempt --repo "$REPO" --probe "$PROBE" --run-id "$RUN_ID"
+      - name: Reject stale file SHA overwrite using real GitHub API
+        run: python scripts/ccf_r64_probe.py stale --repo "$REPO" --probe "$PROBE" --run-id "$RUN_ID" --stale-sha .r64-stale-version
+      - name: Recover remote ATTEMPTING to UNCERTAIN after simulated crash
+        run: python scripts/ccf_r64_probe.py recover --repo "$REPO" --probe "$PROBE" --run-id "$RUN_ID"
+      - name: Fresh process verifies remote UNCERTAIN and blocks retries
+        run: |
+          python scripts/ccf_r64_probe.py verify --repo "$REPO" --probe "$PROBE" --run-id "$RUN_ID" | tee .r64-verify-output
+          grep -q '"auto_retry_blocked": true' .r64-verify-output
+          grep -q '"new_batch_blocked": true' .r64-verify-output
+      - name: Assert production states and checkout unmodified
+        if: always()
+        run: |
+          sha256sum -c .r64-history.sha
+          sha256sum -c .r64-ledger.sha
+          test -z "$(git status --porcelain -- data/ccf_sent_history.json data/ccf_delivery_ledger.json)"
+          echo 'No SMTP, no production ledger writes and no mail.'
+      - name: Upload probe outcome (no Secrets)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccf-r64-remote-cas-audit
+          path: |
+            .r64-verify-output
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: warn

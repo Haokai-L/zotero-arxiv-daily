@@ -1,0 +1,85 @@
+name: CCF R6-3 Delivery Safety and Publisher Gate (No Email)
+on:
+  push:
+    branches: [feature/ccf-a-daily]
+    paths:
+      - '.github/workflows/ccf-r63-delivery-safety.yml'
+      - 'scripts/ccf_r63_delivery.py'
+      - 'scripts/ccf_r63_dryrun.py'
+      - 'tests/test_ccf_r63.py'
+      - 'docs/ccf-r63-safety.md'
+      - 'data/ccf_delivery_ledger.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ccf-r63-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  safety:
+    if: github.ref == 'refs/heads/feature/ccf-a-daily'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout feature branch with read-only permissions
+        uses: actions/checkout@v6
+      - name: Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install offline test dependencies
+        run: python -m pip install 'PyYAML>=6,<7' 'numpy>=2,<3' 'omegaconf>=2.3,<3' 'openai>=2,<3' 'tiktoken>=0.8,<1' 'loguru>=0.7,<1'
+      - name: Test source gate, idempotency, and failure recovery
+        run: python -m unittest discover -s tests -p test_ccf_r63.py -v
+      - name: Hash production history and ledger before dry-run
+        run: |
+          sha256sum data/ccf_sent_history.json > .history-sha
+          sha256sum data/ccf_delivery_ledger.json > .ledger-sha
+      - name: Download previous independent publisher verified sample
+        uses: actions/download-artifact@v4
+        with:
+          name: ccf-r6-verified-replay
+          run-id: 45146833594
+          github-token: ${{ github.token }}
+          path: inputs/r6
+      - name: Restore source verified sample only
+        run: |
+          test -s inputs/r6/verified_candidates.csv
+          cp inputs/r6/verified_candidates.csv ccf-r63-verified.csv
+      - name: Enrich only independently verified papers
+        env:
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+        run: |
+          python scripts/ccf_paper_enrichment.py \
+            --input ccf-r63-verified.csv --per-venue 5 --output-dir ccf-r63-enrichment
+      - name: Real upstream Zotero score and durable crash simulation (no send)
+        env:
+          ZOTERO_ID: ${{ secrets.ZOTERO_ID }}
+          ZOTERO_KEY: ${{ secrets.ZOTERO_KEY }}
+          PYTHONPATH: src
+          HF_HUB_DISABLE_TELEMETRY: '1'
+        run: |
+          test -n "$ZOTERO_ID" && test -n "$ZOTERO_KEY"
+          python -m pip install 'pyzotero>=1.10,<2' 'sentence-transformers>=5,<6' 'transformers>=4.55,<5'
+          python scripts/ccf_r63_dryrun.py \
+            --verified ccf-r63-verified.csv \
+            --enriched ccf-r63-enrichment/enriched_candidates.csv \
+            --out ccf-r63-audit/dryrun.json
+      - name: Verify persistent states unchanged
+        if: always()
+        run: |
+          sha256sum -c .history-sha
+          sha256sum -c .ledger-sha
+          test -z "$(git status --porcelain -- data/ccf_sent_history.json data/ccf_delivery_ledger.json)"
+          echo 'SMTP not invoked, production state files unchanged.'
+      - name: Upload dry-run audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccf-r63-delivery-safety
+          path: |
+            ccf-r63-audit/
+            ccf-r63-enrichment/enrichment_audit.json
+          retention-days: 7
+          if-no-files-found: warn

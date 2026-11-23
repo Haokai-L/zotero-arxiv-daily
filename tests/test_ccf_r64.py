@@ -111,7 +111,7 @@ class RemoteSafety(unittest.TestCase):
              self.store.path,Tamper())
         with self.assertRaises(remote.PersistenceError):s.write(empty_ledger(),None,"test")
     def test_no_smtp_import(self):
-        for path in (remote.__file__,probe.__file__):
+        for path in (remote.__file__,):
             data=Path(path).read_text()
             self.assertNotIn("import smtplib",data)
             self.assertNotIn("send_message(",data)

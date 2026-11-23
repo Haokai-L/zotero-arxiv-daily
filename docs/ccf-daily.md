@@ -50,3 +50,22 @@ period. Previously uploaded artifacts have their own existing expiry times.
 The operational candidate snapshot, sent-history keys and delivery ledger
 must be preserved for incremental discovery, deduplication and crash safety.
 No production email sending or daily schedule is enabled by this change.
+
+## One-step daily chain assembled (no mail, 2026-11-23)
+
+The same unified preview now runs in order: copy candidate state to an
+**ephemeral** GitHub runner path; poll all sixteen configured sources; select
+recent, not-yet-sent/unreserved paper metadata; independently verify their
+formal publisher/proceedings identity; enrich actual abstracts; use the
+unchanged Zotero reranker; and create DeepSeek HTML preview. A separate
+security test suite validates a disabled-by-default SMTP adapter, durable
+PREPARED and ATTEMPTING CAS before a simulated transport handoff, acceptance
+and ambiguous acknowledgements.
+
+**The candidate refresh still does not persist back to GitHub.** A genuinely
+scheduled production workflow must commit updated discovery state through
+controlled CAS; if it cannot safely persist it, it must not treat that day's
+acquisition as durable. Real SMTP remains separately unauthorized and is never
+called by this workflow. The 2026 conference map needs a 2027 update at the
+turn of the year. A successful no-send preview does not authorize scheduling
+or production deployment.

@@ -7,6 +7,11 @@ on:
       - 'scripts/ccf_daily_preview.py'
       - 'tests/test_ccf_daily_preview.py'
       - 'scripts/ccf_r5_mail.py'
+      - 'scripts/ccf_daily_candidates.py'
+      - 'scripts/ccf_incremental.py'
+      - 'scripts/ccf_send_engine.py'
+      - 'scripts/ccf_smtp_submission.py'
+      - 'tests/test_ccf_daily_delivery.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,7 +22,7 @@ jobs:
   preview:
     if: github.ref == 'refs/heads/feature/ccf-a-daily'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 55
     steps:
       - name: Checkout developer branch
         uses: actions/checkout@v6
@@ -41,10 +46,30 @@ jobs:
           sha256sum data/ccf_sent_history.json > .ccf-history.sha
           sha256sum data/ccf_delivery_ledger.json > .ccf-ledger.sha
           sha256sum data/ccf_candidate_state.json > .ccf-candidates.sha
-      - name: Independently verify sampled formal CCF publication sources
+      - name: Refresh all 16 formal sources in an ephemeral candidate snapshot
+        env:
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+        run: |
+          mkdir -p ccf-daily-work
+          cp data/ccf_candidate_state.json ccf-daily-work/candidate_state.json
+          python scripts/ccf_incremental.py \
+            --state ccf-daily-work/candidate_state.json \
+            --history data/ccf_sent_history.json \
+            --output ccf-daily-work/discovery \
+            --lookback 60 --crossref-pages 4
+          echo 'Discovery writes only the ephemeral runner copy; no repository writes.'
+      - name: Select recent, unsent, unreserved candidates for bounded verification
+        run: |
+          python scripts/ccf_daily_candidates.py \
+            --state ccf-daily-work/candidate_state.json \
+            --history data/ccf_sent_history.json \
+            --ledger data/ccf_delivery_ledger.json \
+            --per-venue 5 \
+            --output ccf-daily-work/verification_queue.json
+      - name: Independently verify selected journal and main-conference records
         run: |
           python scripts/ccf_r6_verify.py \
-            --state data/ccf_candidate_state.json \
+            --state ccf-daily-work/verification_queue.json \
             --output ccf-daily-verified \
             --per-venue 5
       - name: Enrich verified CCF abstracts

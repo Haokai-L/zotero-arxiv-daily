@@ -10,9 +10,9 @@
         "synthetic:r64:45155146415:2",
         "synthetic:r64:45155146415:3"
       ],
-      "last_event": "HANDOFF_MAY_HAVE_STARTED",
+      "last_event": "RESTART_WITHOUT_ACCEPTANCE_PROOF",
       "smtp_ack": false,
-      "state": "ATTEMPTING"
+      "state": "UNCERTAIN"
     }
   },
   "schema_version": 1

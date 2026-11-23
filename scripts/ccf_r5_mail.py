@@ -117,7 +117,12 @@ def render_html(items, summary_status, today):
           <p style="color:#58677a;font-size:13px">{html.escape(authors)}</p>
           {summary}<p>DOI：{doi or '未提供'}</p><p>{links}</p>
           </section>''')
-    note='本邮件仅为预览，未发送；论文为 CCF A 类来源的元数据初筛候选，尚未逐篇完成出版社复核。'
+    independently_verified=all(
+        p.get('publisher_verification') in ('VERIFIED_PUBLISHER','VERIFIED_OFFICIAL')
+        and safe_link(p.get('verification_evidence')) for p in items)
+    note=('本邮件仅为预览，未发送；所列论文已完成独立来源元数据核验（DOI/出版社或会议官网），'
+          '但不代表已人工通读全文。' if independently_verified
+          else '本邮件仅为预览，未发送；论文为 CCF A 类来源的元数据初筛候选，尚未逐篇完成出版社复核。')
     return '''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>CCF 每日论文推荐预览</title></head>
     <body style="font-family:Arial,'Microsoft YaHei',sans-serif;background:#f8fafc;color:#172538">
     <main style="max-width:760px;margin:32px auto;padding:18px;background:white;border-radius:12px">
@@ -142,7 +147,10 @@ def build(recommendations, config, whitelist, out_dir, env=None, client=None, to
     audit={'stage':'R5','date':today,'selected':len(result),'deepseek_generated':success,
            'summary_status_counts':counts,'provider_credential_mode':provider,
            'email_sent':False,'sent_history_modified':False,
-           'paper_status':'PRELIMINARY_NOT_INDEPENDENTLY_PUBLISHER_VERIFIED',
+           'paper_status':('INDEPENDENTLY_VERIFIED_SOURCE_METADATA' if all(
+               x.get('publisher_verification') in ('VERIFIED_PUBLISHER','VERIFIED_OFFICIAL')
+               and safe_link(x.get('verification_evidence')) for x in result)
+               else 'PRELIMINARY_NOT_INDEPENDENTLY_PUBLISHER_VERIFIED'),
            'production_ready':False}
     out_dir=Path(out_dir);out_dir.mkdir(parents=True,exist_ok=True)
     (out_dir/'email_preview.html').write_text(render_html(result,'DeepSeek 成功' if success==len(result) else '部分或全部未生成',today),encoding='utf-8')

@@ -1,7 +1,7 @@
 {
   "batches": {
     "b92fd78f92d04b08704498f3": {
-      "attempts": 0,
+      "attempts": 1,
       "content_sha256": "fe49f56dc8423c4949b6ee05d0a690f2ff59bb18c4bc14a6b8d9f5b414aded76",
       "day": "2026-11-23",
       "id": "b92fd78f92d04b08704498f3",
@@ -10,9 +10,9 @@
         "synthetic:r64:45155146415:2",
         "synthetic:r64:45155146415:3"
       ],
-      "last_event": "PREPARED_OFFLINE",
+      "last_event": "HANDOFF_MAY_HAVE_STARTED",
       "smtp_ack": false,
-      "state": "PREPARED"
+      "state": "ATTEMPTING"
     }
   },
   "schema_version": 1

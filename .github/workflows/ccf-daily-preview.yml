@@ -14,7 +14,7 @@ on:
       - 'tests/test_ccf_daily_delivery.py'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: ccf-daily-preview-${{ github.ref }}
   cancel-in-progress: true
@@ -103,6 +103,46 @@ jobs:
           sha256sum -c .ccf-ledger.sha
           sha256sum -c .ccf-candidates.sha
           echo 'Consolidated email preview only; SMTP was never invoked.'
+      - name: Persist successful candidate refresh on feature branch only
+        if: success()
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/feature/ccf-a-daily"
+          sha256sum -c .ccf-history.sha
+          sha256sum -c .ccf-ledger.sha
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          fresh=json.loads(Path("ccf-daily-work/candidate_state.json").read_text(encoding="utf-8"))
+          old=json.loads(Path("data/ccf_candidate_state.json").read_text(encoding="utf-8"))
+          if fresh.get("schema_version")!=1 or not isinstance(fresh.get("papers"),dict):
+              raise SystemExit("Invalid refreshed candidate state")
+          if len(fresh["papers"])<len(old["papers"]):
+              raise SystemExit("Refusing candidate-state data loss")
+          if any(k not in fresh["papers"] for k in old["papers"]):
+              raise SystemExit("Refusing previously known DOI/key deletion")
+          preview=json.loads(Path("ccf-daily-preview/consolidated_audit.json").read_text(encoding="utf-8"))
+          if preview["email_sent"] is not False or preview["selected_count"]<1 or preview["deepseek_generated"]!=preview["selected_count"]:
+              raise SystemExit("Incomplete or unsafe preview: candidate persistence disabled")
+          PY
+          cp ccf-daily-work/candidate_state.json data/ccf_candidate_state.json
+          if git diff --quiet -- data/ccf_candidate_state.json; then
+            echo "No candidate-state changes to persist."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -- data/ccf_candidate_state.json
+            test "$(git diff --cached --name-only)" = "data/ccf_candidate_state.json"
+            git commit -m "data(ccf): checkpoint verified daily discovery [skip ci]"
+            commit_sha="$(git rev-parse HEAD)"
+            git push origin HEAD:refs/heads/feature/ccf-a-daily
+            remote_sha="$(git ls-remote origin refs/heads/feature/ccf-a-daily | cut -f1)"
+            test "$remote_sha" = "$commit_sha"
+            echo "Candidate state persisted with verified remote commit."
+          fi
+          sha256sum -c .ccf-history.sha
+          sha256sum -c .ccf-ledger.sha
+          echo "No SMTP was invoked; history/ledger byte-identical."
       - name: Upload only short-lived HTML preview (no audit archives)
         if: success()
         uses: actions/upload-artifact@v4

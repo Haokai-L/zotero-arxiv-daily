@@ -16,7 +16,7 @@ One integrated read-only developer preview workflow, .github/workflows/ccf-daily
 4. Produce no-send Chinese HTML/JSON, simulate an interrupted send with a *temporary in-memory ledger* and assert auto-retry is blocked.
 5. Publish a seven-day preview artifact.
 
-The historical candidate state is maintained separately; this workflow neither polls nor modifies it. Current 2026-only incremental source configuration needs yearly maintenance and does not cover all three years completely. Past historical workflows and test-only probes are preserved in backup/pre-consolidation-20261123.
+The workflow refreshes an isolated candidate-state copy and, after full successful verification, scoring and Chinese preview, commits only the updated candidate-state JSON back to feature/ccf-a-daily using a non-force, fast-forward-only Git push. Failure to push makes the workflow fail closed. Current 2026-only incremental source configuration needs yearly maintenance and does not cover all three years completely. Past historical workflows and test-only probes are preserved in backup/pre-consolidation-20261123.
 
 ## Before sending emails
 The integrated no-send preview is not a scheduled production recommender. Still required:
@@ -62,10 +62,13 @@ security test suite validates a disabled-by-default SMTP adapter, durable
 PREPARED and ATTEMPTING CAS before a simulated transport handoff, acceptance
 and ambiguous acknowledgements.
 
-**The candidate refresh still does not persist back to GitHub.** A genuinely
+**The candidate refresh is saved **only after full successful preview**, through a checked fast-forward-only commit to the feature branch; neither `main` nor the production email state is changed.** A genuinely
 scheduled production workflow must commit updated discovery state through
 controlled CAS; if it cannot safely persist it, it must not treat that day's
 acquisition as durable. Real SMTP remains separately unauthorized and is never
 called by this workflow. The 2026 conference map needs a 2027 update at the
 turn of the year. A successful no-send preview does not authorize scheduling
 or production deployment.
+
+## Durable incremental checkpoint (2026-11-23)
+The unified workflow has `contents: write` solely for its **final guarded candidate-state commit**. It is still restricted to the development branch, has no SMTP send step, requires that Chinese summaries cover every selected paper, refuses key deletion and non-fast-forward Git push, and verifies that history/ledger remain byte-identical. Data-only commits use `[skip ci]`, avoiding workflow recursion. Any token/branch-protection denial is a failure, not a silent local-only success.

@@ -1,0 +1,96 @@
+# R4-2: verified 2026 main-conference identity rules, not preprint discovery.
+# Source labels must be confirmed again for each new conference year.
+year: 2026
+venues:
+  SIGCOMM:
+    field: networking
+    provider: crossref
+    query: "Proceedings of the ACM SIGCOMM 2026 Conference"
+    aliases: ["Proceedings of the ACM SIGCOMM 2026 Conference"]
+    publisher: ACM
+    doi_prefix: "10.1145/"
+    official_url: "https://conferences.sigcomm.org/sigcomm/2026/"
+  MobiCom:
+    field: networking
+    provider: crossref
+    query: "Proceedings of the 32nd Annual International Conference on Mobile Computing and Networking"
+    aliases: ["Proceedings of the 32nd Annual International Conference on Mobile Computing and Networking"]
+    publisher: ACM
+    doi_prefix: "10.1145/"
+    official_url: "https://sigmobile.org/mobicom/2026/"
+  INFOCOM:
+    field: networking
+    provider: crossref
+    query: "IEEE INFOCOM 2026 IEEE Conference on Computer Communications"
+    aliases: ["2026 IEEE International Conference on Computer Communications (INFOCOM)", "IEEE INFOCOM 2026 - IEEE Conference on Computer Communications"]
+    publisher: IEEE
+    doi_prefix: "10.1109/"
+    official_url: "https://infocom2026.ieee-infocom.org/"
+  NSDI:
+    field: networking
+    provider: official
+    official_type: usenix
+    slug: nsdi26
+    official_url: "https://www.usenix.org/conference/nsdi26/technical-sessions"
+  CCS:
+    field: security
+    provider: crossref
+    query: "Proceedings of the 2026 ACM SIGSAC Conference on Computer and Communications Security"
+    aliases: ["Proceedings of the 2026 ACM SIGSAC Conference on Computer and Communications Security"]
+    publisher: ACM
+    doi_prefix: "10.1145/"
+    official_url: "https://sigsac.org/ccs/CCS2026/"
+  EUROCRYPT:
+    field: security
+    provider: crossref
+    query: "Advances in Cryptology EUROCRYPT 2026"
+    aliases: ["Advances in Cryptology EUROCRYPT 2026"]
+    publisher: Springer
+    doi_prefix: "10.1007/"
+    verified_book_dois:
+      - "10.1007/978-3-032-25291-3" # I
+      - "10.1007/978-3-032-25317-0" # II
+      - "10.1007/978-3-032-25324-8" # III
+      - "10.1007/978-3-032-25327-9" # IV
+      - "10.1007/978-3-032-25330-9" # V
+      - "10.1007/978-3-032-25333-0" # VI
+      - "10.1007/978-3-032-25336-1" # VII
+    official_url: "https://link.springer.com/book/10.1007/978-3-032-25291-3"
+  "S&P":
+    field: security
+    provider: crossref
+    query: "2026 IEEE Symposium on Security and Privacy"
+    aliases: ["2026 IEEE Symposium on Security and Privacy (SP)", "2026 IEEE Symposium on Security and Privacy"]
+    publisher: IEEE
+    doi_prefix: "10.1109/"
+    official_url: "https://sp2026.ieee-security.org/accepted-papers.html"
+  CRYPTO:
+    field: security
+    provider: crossref
+    query: "Advances in Cryptology CRYPTO 2026"
+    aliases: ["Advances in Cryptology CRYPTO 2026"]
+    publisher: Springer
+    doi_prefix: "10.1007/"
+    verified_book_dois:
+      - "10.1007/978-3-032-35367-2" # I
+      - "10.1007/978-3-032-35374-0" # II
+      - "10.1007/978-3-032-35377-1" # III
+      - "10.1007/978-3-032-35398-6" # IV
+      - "10.1007/978-3-032-35409-9" # V
+      - "10.1007/978-3-032-35412-9" # VI
+      - "10.1007/978-3-032-35415-0" # VII
+      - "10.1007/978-3-032-35418-1" # VIII
+      - "10.1007/978-3-032-35424-2" # IX
+      - "10.1007/978-3-032-35428-0" # X
+    official_url: "https://link.springer.com/book/10.1007/978-3-032-35367-2"
+  USENIX_SECURITY:
+    field: security
+    provider: official
+    official_type: usenix
+    slug: usenixsecurity26
+    official_url: "https://www.usenix.org/conference/usenixsecurity26/technical-sessions"
+  NDSS:
+    field: security
+    provider: official
+    official_type: ndss
+    official_url: "https://www.ndss-symposium.org/ndss2026/accepted-papers/"

@@ -1,0 +1,81 @@
+name: CCF R4-2 Incremental Discovery (No Email)
+
+on:
+  push:
+    branches: [feature/ccf-a-daily]
+    paths:
+      - '.github/workflows/ccf-incremental-preview.yml'
+      - 'scripts/ccf_incremental.py'
+      - 'tests/test_ccf_incremental.py'
+      - 'config/ccf_incremental_2026.yaml'
+      - 'data/ccf_sent_history.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write    # limited to committing candidate state on developer branch
+  actions: read
+
+concurrency:
+  group: ccf-r42-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  incremental-audit:
+    if: github.ref == 'refs/heads/feature/ccf-a-daily'
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - name: Checkout developer branch only
+        uses: actions/checkout@v6
+        with:
+          ref: feature/ccf-a-daily
+          persist-credentials: true
+      - name: Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install minimal audit dependency
+        run: python -m pip install 'PyYAML>=6,<7'
+      - name: Test persistence, deduplication, official source checks offline
+        run: python -m unittest discover -s tests -p test_ccf_incremental.py -v
+      - name: Optional one-time bootstrap from R3-4a audit snapshot
+        if: hashFiles('data/ccf_candidate_state.json') == ''
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: ccf-unified-pool-r34a
+          run-id: 45107717311
+          github-token: ${{ github.token }}
+          path: inputs/previous-audit
+      - name: Discover fresh CCF journal and official conference papers
+        env:
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+        run: |
+          python scripts/ccf_incremental.py \
+            --state data/ccf_candidate_state.json \
+            --history data/ccf_sent_history.json \
+            --seed inputs/previous-audit/candidates_preliminary.csv \
+            --output ccf-r42-preview \
+            --lookback 60 --crossref-pages 4
+      - name: Upload audit even if discovery failed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccf-r42-incremental-audit
+          path: ccf-r42-preview/
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Persist candidate state on feature branch only, never sent history
+        if: success() && github.ref == 'refs/heads/feature/ccf-a-daily'
+        run: |
+          test -f data/ccf_candidate_state.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- data/ccf_candidate_state.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data: checkpoint CCF incremental candidates [skip ci]'
+            git push origin HEAD:feature/ccf-a-daily
+          else
+            echo 'No candidate-state changes'
+          fi
+          echo 'Never update sent history from discovery or preview.'

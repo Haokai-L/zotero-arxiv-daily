@@ -4,7 +4,6 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
 import ccf_r64_remote_store as remote
-import ccf_r64_probe as probe
 from ccf_r63_delivery import (empty_ledger,prepare_batch,begin_attempt,
                               recover_after_crash,SafetyError,check_ledger)
 
@@ -111,9 +110,6 @@ class RemoteSafety(unittest.TestCase):
         s=remote.ProbeStore("Haokai-L/zotero-arxiv-daily","feature/ccf-a-daily",
              self.store.path,Tamper())
         with self.assertRaises(remote.PersistenceError):s.write(empty_ledger(),None,"test")
-    def test_probe_state_is_synthetic(self):
-        self.assertTrue(all(x["paper_key"].startswith("synthetic:r64:")
-            for x in probe.synthetic_rows("45153022186")))
     def test_no_smtp_import(self):
         for path in (remote.__file__,probe.__file__):
             data=Path(path).read_text()

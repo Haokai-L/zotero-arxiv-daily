@@ -25,3 +25,18 @@ The integrated no-send preview is not a scheduled production recommender. Still 
 - Obtain user approval for one real TEST email; later obtain independent approval for automated daily mail.
 
 Do not store unverified "sent" markers or claim mailbox delivery from SMTP acceptance alone.
+
+## Consolidation and cleanup completed on 2026-11-23
+
+The active feature branch retains only **two CCF Actions**:
+`ccf-daily-preview.yml` (read-only, manual no-email acceptance)
+and `ccf-safety-ci.yml` (offline regression). Nine obsolete stage-specific
+workflows and seven repetitive stage documents were removed, along with
+four no-longer-used scripts/test files and one synthetic GitHub probe JSON.
+The full pre-cleanup snapshot is preserved as
+`backup/pre-consolidation-20261123`.
+
+Important: This cleanup does **not** implement scheduled discovery or SMTP
+sending. `ccf_incremental.py` remains as a reusable acquisition module;
+the consolidated read-only preview currently reads the durable candidate
+snapshot and independently verifies sampled final candidates.

@@ -45,8 +45,8 @@ jobs:
           path: inputs/r6
       - name: Restore source verified sample only
         run: |
-          test -s inputs/r6/verified_candidates.csv
-          cp inputs/r6/verified_candidates.csv ccf-r63-verified.csv
+          test -s inputs/r6/ccf-r6-audit/verified_candidates.csv
+          cp inputs/r6/ccf-r6-audit/verified_candidates.csv ccf-r63-verified.csv
       - name: Enrich only independently verified papers
         env:
           OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}

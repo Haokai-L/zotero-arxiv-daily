@@ -89,7 +89,7 @@ def main():
             rows.extend(items)
             counts=Counter(item["status"] for item in items)
             a["counts"]=dict(counts)
-            if not any(c in counts for c in ("CROSSREF_META_MATCH","OFFICIAL_LISTED")):
+            if not any(c in counts for c in ("CROSSREF_META_MATCH","SPRINGER_BOOK_MATCH","OFFICIAL_LISTED")):
                 a["status"]="NEEDS_REVIEW_NO_MATCH"
             print(f"{venue}: {a['status']}; retrieved={a['retrieved']}; statuses={dict(counts)}",flush=True)
         except Exception as exc:
@@ -99,7 +99,7 @@ def main():
         audit.append(a)
         sleep(0.6)
     rows=cq.deduplicate(rows)
-    matches=[r for r in rows if r["status"] in ("CROSSREF_META_MATCH","OFFICIAL_LISTED")]
+    matches=[r for r in rows if r["status"] in ("CROSSREF_META_MATCH","SPRINGER_BOOK_MATCH","OFFICIAL_LISTED")]
     reviews=[r for r in rows if r["status"]=="REVIEW"]
     excluded=[r for r in rows if r["status"]=="EXCLUDED_DUPLICATE"]
     selected=[];overflow=[]

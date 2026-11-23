@@ -1,0 +1,77 @@
+# R3-3: official 2025 main-conference source audit (not a full 2024-2026 backfill).
+# Conference source identity is evidence for a *venue*, not automatic CCF proof for each candidate.
+year: 2025
+venues:
+  SIGCOMM:
+    field: networking
+    provider: crossref
+    query: "Proceedings of the ACM SIGCOMM 2025 Conference"
+    aliases: ["Proceedings of the ACM SIGCOMM 2025 Conference"]
+    doi_prefix: "10.1145/"
+    publisher: ACM
+    official_url: "https://conferences.sigcomm.org/sigcomm/2025/"
+  MobiCom:
+    field: networking
+    provider: crossref
+    query: "Proceedings of the 31st Annual International Conference on Mobile Computing and Networking"
+    aliases: ["Proceedings of the 31st Annual International Conference on Mobile Computing and Networking"]
+    doi_prefix: "10.1145/"
+    publisher: ACM
+    official_url: "https://sigmobile.org/mobicom/2025/index.html"
+  INFOCOM:
+    field: networking
+    provider: crossref
+    query: "IEEE INFOCOM 2025 IEEE Conference on Computer Communications"
+    aliases: ["2025 IEEE International Conference on Computer Communications (INFOCOM)", "IEEE INFOCOM 2025 - IEEE Conference on Computer Communications"]
+    doi_prefix: "10.1109/"
+    publisher: IEEE
+    official_url: "https://infocom2025.ieee-infocom.org/"
+  NSDI:
+    field: networking
+    provider: official
+    official_url: "https://www.usenix.org/conference/nsdi25/technical-sessions"
+    official_type: usenix
+    slug: nsdi25
+  CCS:
+    field: security
+    provider: crossref
+    query: "Proceedings of the 2025 ACM SIGSAC Conference on Computer and Communications Security"
+    aliases: ["Proceedings of the 2025 ACM SIGSAC Conference on Computer and Communications Security"]
+    doi_prefix: "10.1145/"
+    publisher: ACM
+    official_url: "https://sigsac.org/ccs/CCS2025/"
+  EUROCRYPT:
+    field: security
+    provider: crossref
+    query: "Advances in Cryptology EUROCRYPT 2025"
+    aliases: ["Advances in Cryptology EUROCRYPT 2025"]
+    doi_prefix: "10.1007/"
+    publisher: Springer
+    official_url: "https://link.springer.com/book/10.1007/978-3-031-91107-1"
+  "S&P":
+    field: security
+    provider: crossref
+    query: "2025 IEEE Symposium on Security and Privacy"
+    aliases: ["2025 IEEE Symposium on Security and Privacy (SP)", "2025 IEEE Symposium on Security and Privacy"]
+    doi_prefix: "10.1109/"
+    publisher: IEEE
+    official_url: "https://sp2025.ieee-security.org/accepted-papers.html"
+  CRYPTO:
+    field: security
+    provider: crossref
+    query: "Advances in Cryptology CRYPTO 2025"
+    aliases: ["Advances in Cryptology CRYPTO 2025"]
+    doi_prefix: "10.1007/"
+    publisher: Springer
+    official_url: "https://link.springer.com/book/10.1007/978-3-032-01901-1"
+  USENIX_SECURITY:
+    field: security
+    provider: official
+    official_url: "https://www.usenix.org/conference/usenixsecurity25/technical-sessions"
+    official_type: usenix
+    slug: usenixsecurity25
+  NDSS:
+    field: security
+    provider: official
+    official_url: "https://www.ndss-symposium.org/ndss2025/accepted-papers/"
+    official_type: ndss

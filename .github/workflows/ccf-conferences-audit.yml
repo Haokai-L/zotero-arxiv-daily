@@ -1,0 +1,42 @@
+name: CCF Conference R3-3 Audit
+on:
+  push:
+    branches:
+      - feature/ccf-a-daily
+    paths:
+      - ".github/workflows/ccf-conferences-audit.yml"
+      - "config/conference_source_map.yaml"
+      - "config/ccf_a_venues.yaml"
+      - "scripts/collect_ccf_conferences.py"
+      - "scripts/ccf_conference_quality.py"
+      - "tests/test_ccf_conference_quality.py"
+permissions:
+  contents: read
+concurrency:
+  group: ccf-conference-r33-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  conference-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install PyYAML
+        run: python -m pip install "PyYAML>=6,<7"
+      - name: Run offline conference quality tests
+        run: python -m unittest discover -s tests -p test_ccf_conference_quality.py -v
+      - name: Audit ten conference sources
+        run: python scripts/collect_ccf_conferences.py
+      - name: Upload audit artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccf-conference-r33-audit
+          path: ccf-conference-preview/
+          retention-days: 7
+          if-no-files-found: warn

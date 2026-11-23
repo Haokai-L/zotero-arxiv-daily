@@ -1,0 +1,6 @@
+# R5 draft only: never send email or update sent-history.
+daily_max: 3
+send_enabled: false
+preview_only: true
+model: deepseek-chat
+max_summary_chars: 220

@@ -27,7 +27,12 @@ class R33Tests(unittest.TestCase):
     def test_ieee_main(self):
         self.assertEqual(q.check_crossref(record("INFOCOM"),"INFOCOM",settings("INFOCOM"))["status"],"CROSSREF_META_MATCH")
     def test_springer_book_chapter(self):
-        self.assertEqual(q.check_crossref(record("EUROCRYPT"),"EUROCRYPT",settings("EUROCRYPT"))["status"],"CROSSREF_META_MATCH")
+        s=settings("EUROCRYPT")
+        s["verified_book_dois"]=["10.1007/978-3-031-91107-1"]
+        r=record("EUROCRYPT")
+        r["container-title"]=["Lecture Notes in Computer Science"]
+        r["DOI"]="10.1007/978-3-031-91107-1_7"
+        self.assertEqual(q.check_crossref(r,"EUROCRYPT",s)["status"],"SPRINGER_BOOK_MATCH")
     def test_workshop_not_main(self):
         r=record();r["container-title"]=["Workshop on ACM Conference on Computer and Communications Security 2025"]
         self.assertEqual(q.check_crossref(r,"CCS",settings())["status"],"REVIEW")

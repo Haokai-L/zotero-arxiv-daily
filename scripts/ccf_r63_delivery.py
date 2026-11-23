@@ -173,6 +173,8 @@ def select_sendable(scored, verified_rows, whitelist, history, ledger):
     """Gate BEFORE original choose(); an unverified top rank cannot displace verified work."""
     if len(whitelist) != 16:
         raise SafetyError("Expected 16 trusted formal CCF source labels")
+    if any(batch["state"] in PENDING for batch in ledger["batches"].values()):
+        raise SafetyError("Pending or uncertain send requires reconciliation before new selection")
     verified = {row.get("paper_key"): row for row in verified_rows
                 if row.get("publisher_verification") in VERIFIED}
     skip = {}

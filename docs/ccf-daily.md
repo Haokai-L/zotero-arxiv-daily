@@ -40,3 +40,13 @@ Important: This cleanup does **not** implement scheduled discovery or SMTP
 sending. `ccf_incremental.py` remains as a reusable acquisition module;
 the consolidated read-only preview currently reads the durable candidate
 snapshot and independently verifies sampled final candidates.
+
+## Data minimization (2026-11-23)
+
+Temporary CSV/JSON verification audits remain only on the ephemeral GitHub Actions
+runner and are **not uploaded** by the consolidated preview. Only the HTML
+preview is retained as a GitHub Actions artifact, with a 1-day retention
+period. Previously uploaded artifacts have their own existing expiry times.
+The operational candidate snapshot, sent-history keys and delivery ledger
+must be preserved for incremental discovery, deduplication and crash safety.
+No production email sending or daily schedule is enabled by this change.

@@ -78,14 +78,11 @@ jobs:
           sha256sum -c .ccf-ledger.sha
           sha256sum -c .ccf-candidates.sha
           echo 'Consolidated email preview only; SMTP was never invoked.'
-      - name: Upload consolidated preview and audit
-        if: always()
+      - name: Upload only short-lived HTML preview (no audit archives)
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: ccf-consolidated-preview
-          path: |
-            ccf-daily-preview/
-            ccf-daily-verified/verification_audit.json
-            ccf-daily-enriched/enrichment_audit.json
-          retention-days: 7
-          if-no-files-found: warn
+          name: ccf-html-preview
+          path: ccf-daily-preview/email_preview.html
+          retention-days: 1
+          if-no-files-found: error

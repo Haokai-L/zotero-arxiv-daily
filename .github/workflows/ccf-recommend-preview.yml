@@ -59,7 +59,7 @@ jobs:
             echo '{"status":"SKIPPED_ZOTERO_CREDENTIALS_MISSING","email_sent":false}' > ccf-r41-preview/scoring_status.json
             echo 'Zotero read credentials not configured; real scoring not attempted.'
           else
-            python -m pip install "pyzotero>=1.10,<2" "sentence-transformers>=5,<6"
+            python -m pip install "pyzotero>=1.10,<2" "sentence-transformers>=5,<6" "transformers>=4.55,<5"
             python scripts/ccf_recommend_preview.py \
               --input ccf-r41-preview/enriched_candidates.csv \
               --output ccf-r41-preview/recommendations.json \

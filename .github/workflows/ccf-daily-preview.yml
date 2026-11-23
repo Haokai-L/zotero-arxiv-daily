@@ -1,0 +1,91 @@
+name: CCF Consolidated Daily Preview (No Email)
+on:
+  push:
+    branches: [feature/ccf-a-daily]
+    paths:
+      - '.github/workflows/ccf-daily-preview.yml'
+      - 'scripts/ccf_daily_preview.py'
+      - 'tests/test_ccf_daily_preview.py'
+      - 'scripts/ccf_r5_mail.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ccf-daily-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  preview:
+    if: github.ref == 'refs/heads/feature/ccf-a-daily'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout developer branch
+        uses: actions/checkout@v6
+      - name: Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install original scorer and preview dependencies
+        run: |
+          python -m pip install 'PyYAML>=6,<7' 'numpy>=2,<3' 'omegaconf>=2.3,<3' 'openai>=2,<3' 'tiktoken>=0.8,<1' 'loguru>=0.7,<1'
+          python -m pip install 'pyzotero>=1.10,<2' 'sentence-transformers>=5,<6' 'transformers>=4.55,<5'
+      - name: Run consolidated and critical safety regression tests
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m unittest discover -s tests -p test_ccf_daily_preview.py -v
+          python -m unittest discover -s tests -p test_ccf_r63.py -v
+          python -m unittest discover -s tests -p test_ccf_r64.py -v
+      - name: Snapshot production data checksums
+        run: |
+          sha256sum data/ccf_sent_history.json > .ccf-history.sha
+          sha256sum data/ccf_delivery_ledger.json > .ccf-ledger.sha
+          sha256sum data/ccf_candidate_state.json > .ccf-candidates.sha
+      - name: Independently verify sampled formal CCF publication sources
+        run: |
+          python scripts/ccf_r6_verify.py \
+            --state data/ccf_candidate_state.json \
+            --output ccf-daily-verified \
+            --per-venue 5
+      - name: Enrich verified CCF abstracts
+        env:
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+        run: |
+          python scripts/ccf_paper_enrichment.py \
+            --input ccf-daily-verified/verified_candidates.csv \
+            --per-venue 5 \
+            --output-dir ccf-daily-enriched
+      - name: Genuine Zotero scoring, verified selection and DeepSeek email HTML preview
+        env:
+          ZOTERO_ID: ${{ secrets.ZOTERO_ID }}
+          ZOTERO_KEY: ${{ secrets.ZOTERO_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
+          PYTHONPATH: src
+          HF_HUB_DISABLE_TELEMETRY: '1'
+        run: |
+          test -n "$ZOTERO_ID" && test -n "$ZOTERO_KEY"
+          python scripts/ccf_daily_preview.py \
+            --verified ccf-daily-verified/verified_candidates.csv \
+            --enriched ccf-daily-enriched/enriched_candidates.csv \
+            --out-dir ccf-daily-preview
+          test -s ccf-daily-preview/email_preview.html
+      - name: Assert production data unchanged and no mail sent
+        if: always()
+        run: |
+          sha256sum -c .ccf-history.sha
+          sha256sum -c .ccf-ledger.sha
+          sha256sum -c .ccf-candidates.sha
+          echo 'Consolidated email preview only; SMTP was never invoked.'
+      - name: Upload consolidated preview and audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccf-consolidated-preview
+          path: |
+            ccf-daily-preview/
+            ccf-daily-verified/verification_audit.json
+            ccf-daily-enriched/enrichment_audit.json
+          retention-days: 7
+          if-no-files-found: warn

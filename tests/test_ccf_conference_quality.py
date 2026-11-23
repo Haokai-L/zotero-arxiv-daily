@@ -42,6 +42,33 @@ class R33Tests(unittest.TestCase):
     def test_wrong_document_type(self):
         r=record();r["type"]="journal-article"
         self.assertEqual(q.check_crossref(r,"CCS",settings())["status"],"REVIEW")
+    def test_verified_crypto_book_chapter(self):
+        s=settings("EUROCRYPT")
+        s["verified_book_dois"]=["10.1007/978-3-031-91107-1"]
+        r=record("EUROCRYPT")
+        r["container-title"]=["Lecture Notes in Computer Science"]
+        r["DOI"]="10.1007/978-3-031-91107-1_7"
+        p=q.check_crossref(r,"EUROCRYPT",s)
+        self.assertEqual(p["status"],"SPRINGER_BOOK_MATCH")
+        self.assertEqual(p["official_evidence_url"],
+                         "https://link.springer.com/book/10.1007/978-3-031-91107-1")
+    def test_unverified_lncs_rejected(self):
+        s=settings("EUROCRYPT")
+        s["verified_book_dois"]=["10.1007/978-3-031-91107-1"]
+        r=record("EUROCRYPT")
+        r["container-title"]=["Lecture Notes in Computer Science"]
+        r["DOI"]="10.1007/978-3-031-99999-9_1"
+        p=q.check_crossref(r,"EUROCRYPT",s)
+        self.assertEqual(p["status"],"REVIEW")
+        self.assertIn("UNVERIFIED_SPRINGER_BOOK_DOI",p["reason"])
+    def test_crypto_book_chapter(self):
+        s=settings("EUROCRYPT")
+        s["verified_book_dois"]=["10.1007/978-3-032-01901-1"]
+        r=record("EUROCRYPT")
+        r["container-title"]=["Lecture Notes in Computer Science"]
+        r["DOI"]="10.1007/978-3-032-01901-1_18"
+        p=q.check_crossref(r,"CRYPTO",s)
+        self.assertEqual(p["status"],"SPRINGER_BOOK_MATCH")
     def test_official_usenix_valid(self):
         cfg={"official_type":"usenix","slug":"nsdi25","official_url":"https://www.usenix.org/conference/nsdi25/technical-sessions"}
         html='<a href="/conference/nsdi25/presentation/smith">Deadline-Aware Fault Recovery for Networked Services</a>'

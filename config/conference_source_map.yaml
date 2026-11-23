@@ -47,6 +47,16 @@ venues:
     aliases: ["Advances in Cryptology EUROCRYPT 2025"]
     doi_prefix: "10.1007/"
     publisher: Springer
+    # Official Springer eBook DOIs for LNCS volumes 15601–15608 (2025).
+    verified_book_dois:
+      - "10.1007/978-3-031-91107-1"
+      - "10.1007/978-3-031-91092-0"
+      - "10.1007/978-3-031-91095-1"
+      - "10.1007/978-3-031-91101-9"
+      - "10.1007/978-3-031-91098-2"
+      - "10.1007/978-3-031-91124-8"
+      - "10.1007/978-3-031-91131-6"
+      - "10.1007/978-3-031-91134-7"
     official_url: "https://link.springer.com/book/10.1007/978-3-031-91107-1"
   "S&P":
     field: security
@@ -63,6 +73,16 @@ venues:
     aliases: ["Advances in Cryptology CRYPTO 2025"]
     doi_prefix: "10.1007/"
     publisher: Springer
+    # Official Springer eBook DOIs for CRYPTO 2025 Parts I–VIII.
+    verified_book_dois:
+      - "10.1007/978-3-032-01855-7"
+      - "10.1007/978-3-032-01878-6"
+      - "10.1007/978-3-032-01881-6"
+      - "10.1007/978-3-032-01884-7"
+      - "10.1007/978-3-032-01901-1"
+      - "10.1007/978-3-032-01887-8"
+      - "10.1007/978-3-032-01907-3"
+      - "10.1007/978-3-032-01913-4"
     official_url: "https://link.springer.com/book/10.1007/978-3-032-01901-1"
   USENIX_SECURITY:
     field: security

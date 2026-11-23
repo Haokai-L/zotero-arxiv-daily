@@ -45,7 +45,19 @@ def check_crossref(record, venue, settings, year=2025):
     if BAD_CONTAINER.search(container):
         reasons.append("WORKSHOP_POSTER_DEMO_CONTAINER")
     ncontainer=normalize(container)
-    if not ncontainer or not any(normalize(a) in ncontainer for a in settings["aliases"]):
+    springer_parent_doi=""
+    if venue in ("CRYPTO","EUROCRYPT"):
+        # Springer deposits chapter titles under generic "Lecture Notes in Computer Science".
+        # Check the *exact* verified 2025 volume DOI instead of the generic series title.
+        parents=settings.get("verified_book_dois") or []
+        if "lecture notes in computer science" not in ncontainer:
+            reasons.append("WRONG_SPRINGER_SERIES")
+        if not any(doi.startswith(book_doi.lower()+"_") and doi[len(book_doi)+1:].isdigit()
+                   for book_doi in parents):
+            reasons.append("UNVERIFIED_SPRINGER_BOOK_DOI")
+        else:
+            springer_parent_doi=next(book for book in parents if doi.startswith(book.lower()+"_"))
+    elif not ncontainer or not any(normalize(a) in ncontainer for a in settings["aliases"]):
         reasons.append("NON_MAIN_PROCEEDINGS_TITLE")
     expected_type="book-chapter" if venue in ("CRYPTO","EUROCRYPT") else "proceedings-article"
     if typ!=expected_type:
@@ -66,8 +78,9 @@ def check_crossref(record, venue, settings, year=2025):
         "venue":venue,"year":year,"title":title,"doi":doi,
         "paper_url":record.get("URL") or ("https://doi.org/"+doi if doi else ""),
         "container":container,"publisher":record.get("publisher") or "",
-        "record_type":typ,"source":"Crossref","official_evidence_url":settings["official_url"],
-        "status":"REVIEW" if reasons else "CROSSREF_META_MATCH",
+        "record_type":typ,"source":"Crossref","official_evidence_url":("https://link.springer.com/book/"+springer_parent_doi if springer_parent_doi else settings["official_url"]),
+        "status":"REVIEW" if reasons else
+            "SPRINGER_BOOK_MATCH" if venue in ("CRYPTO","EUROCRYPT") else "CROSSREF_META_MATCH",
         "reason":";".join(reasons)
     }
 
@@ -121,7 +134,7 @@ def parse_official_listing(html,venue,settings,year=2025):
     return result
 
 def deduplicate(rows):
-    preferred={"OFFICIAL_LISTED":0,"CROSSREF_META_MATCH":0,"REVIEW":1}
+    preferred={"OFFICIAL_LISTED":0,"CROSSREF_META_MATCH":0,"SPRINGER_BOOK_MATCH":0,"REVIEW":1}
     seen_doi=set();seen_title=set();out=[]
     for row in sorted(rows,key=lambda r:(preferred.get(r["status"],2),r["venue"],normalize(r["title"]))):
         item=dict(row)

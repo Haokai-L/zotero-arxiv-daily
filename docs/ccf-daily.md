@@ -1,34 +1,31 @@
 # CCF A daily recommendation
 
-The 16 CCF A networking/security venues are configured. Use only formal
-journal/main proceedings records. The existing Zotero scorer reads only
-A-NRC-Research and its children. All eligible available titles within the
-current and preceding two calendar years are scored without a date bonus;
-the top 80 are enriched with authentic abstracts and reranked using the
-original abstract similarity formula. Final publisher/official verification
-is mandatory; select up to three, with one optional near-top A-NRC paper.
-The title shortlist is a cost limit, not exhaustive abstract ranking.
-Discovery is bounded, not a complete three-year archive. Journal IDs remain
-verified on every scan; add a verified annual conference map for new editions.
-If the new year's map is absent, poll the most recent verified edition and
-report the gap rather than failing solely on the calendar change.
+Production: main branch, Actions > CCF Daily Papers. Scheduled at 22:00 UTC
+(06:00 next day Asia/Taipei). GitHub may delay scheduled starts. Manual
+dispatch on main uses the same daily path, not an extra email. A date already
+recorded in the ledger, including the accepted TEST on 2026-11-24, is skipped.
+No arXiv workflow, separate TEST workflow or daily audit artifact is needed.
 
-## Development acceptance
+16 configured CCF A networking/security venues; formal publications only.
+Incremental discovery is bounded, not an exhaustive archive. Candidate dates
+are restricted to the current and preceding two calendar years. Rank available
+titles against A-NRC-Research and descendants using the upstream Zotero
+reranker, enrich up to 80 candidates with authentic abstracts, rerank and
+verify publisher/proceedings identity. Select up to three with an optional
+near-top A-NRC paper, then produce Chinese summaries through DeepSeek.
+There is no publication-date bonus. Annual conference mappings need verified
+updates; without a new mapping the last verified edition remains polled.
 
-Pushes to the feature branch run preview only. To send exactly one TEST batch,
-select Actions > Test > Run workflow > feature/ccf-a-daily (not main).
-Only this manually dispatched branch workflow may call SMTP. A successful
-server acceptance is not proof of inbox delivery; inspect the inbox.
-A batch on the same local day is not repeated. Uncertain delivery blocks
-automatic retransmission. No schedule or production deployment is enabled.
+Only two persistent data files: rolling candidate metadata and the delivery
+ledger. Accepted and expired candidates are pruned on subsequent refreshes;
+accepted paper IDs remain reserved in the ledger. Remote candidate checkpoint
+is non-force; remote PREPARED and ATTEMPTING must be confirmed before SMTP.
+An unresolved send blocks new submission: check inbox and reconcile before
+retrying. The original TEST ledger is preserved. Temporary reports and HTML
+are not uploaded. CI is for relevant pull requests or manual maintenance,
+not daily mail. Old workflow run history is GitHub-managed separately.
 
-## Data and maintenance
-
-The candidate checkpoint is compact JSON, removes expired/accepted records,
-and uses a checked non-force push to the development branch. The ledger stores
-only identifiers, day, digest and state; it is the authoritative sent-key
-source. The empty legacy sent-history file remains for compatibility with
-retained collectors. Never commit private Zotero data, credentials, raw
-mail content or temporary audit reports. The preview HTML expires in one day.
-Temporary CSV/JSON output stays on the runner. Offline CI is separate from
-daily execution. The old upstream arXiv workflow is untouched on main.
+For upstream changes, merge deliberately into a development branch based on
+current main and review conflicts; do not discard customization or reset the
+production ledger. Keep backup branches intact. Do not commit credentials,
+private Zotero abstracts, recipient details, or mail bodies.

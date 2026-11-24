@@ -337,22 +337,3 @@ def run(state_path, history_path, seed_path, whitelist_path, journal_path,
     return report
 
 
-def main():
-    p=argparse.ArgumentParser()
-    p.add_argument('--state',type=Path,default=ROOT/'data/ccf_candidate_state.json')
-    p.add_argument('--history',type=Path,default=ROOT/'data/ccf_sent_history.json')
-    p.add_argument('--seed',type=Path)
-    p.add_argument('--whitelist',type=Path,default=ROOT/'config/ccf_a_venues.yaml')
-    p.add_argument('--journals',type=Path,default=ROOT/'config/journal_source_map.yaml')
-    p.add_argument('--conferences',type=Path,default=ROOT/'config/ccf_incremental_2026.yaml')
-    p.add_argument('--output',type=Path,default=ROOT/'ccf-r42-preview')
-    p.add_argument('--as-of',type=date.fromisoformat,default=date.today())
-    p.add_argument('--lookback',type=int,default=60)
-    p.add_argument('--crossref-pages',type=int,default=4)
-    a=p.parse_args()
-    if not 7<=a.lookback<=120 or not 1<=a.crossref_pages<=10:
-        raise SystemExit('Unsafe lookback or page cap')
-    run(a.state,a.history,a.seed,a.whitelist,a.journals,a.conferences,
-        a.output,a.as_of,a.lookback,a.crossref_pages)
-
-if __name__=='__main__':main()

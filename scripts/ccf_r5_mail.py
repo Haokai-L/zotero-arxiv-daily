@@ -163,15 +163,3 @@ def build(recommendations, config, whitelist, out_dir, env=None, client=None, to
     (out_dir/'summary_audit.json').write_text(json.dumps(audit,ensure_ascii=False,indent=2),encoding='utf-8')
     return audit
 
-def main():
-    p=argparse.ArgumentParser()
-    p.add_argument('--input',type=Path,required=True)
-    p.add_argument('--config',type=Path,default=Path('config/ccf_r5_mail.yaml'))
-    p.add_argument('--whitelist',type=Path,default=Path('config/ccf_a_venues.yaml'))
-    p.add_argument('--out-dir',type=Path,default=Path('ccf-r5-preview'))
-    a=p.parse_args()
-    result=build(json.loads(a.input.read_text(encoding='utf-8')),
-       yaml.safe_load(a.config.read_text(encoding='utf-8')),
-       yaml.safe_load(a.whitelist.read_text(encoding='utf-8'))['venues'],a.out_dir)
-    print('R5_PREVIEW '+json.dumps(result,ensure_ascii=False),flush=True)
-if __name__=='__main__':main()

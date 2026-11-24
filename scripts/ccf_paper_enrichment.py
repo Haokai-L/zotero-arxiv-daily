@@ -82,31 +82,3 @@ def sample_balanced(rows,per_venue):
         if row.get('candidate_status')=='PRELIMINARY':
             groups[row['venue']].append(row)
     return [row for venue in sorted(groups) for row in groups[venue][:per_venue]]
-def main():
-    p=argparse.ArgumentParser()
-    p.add_argument('--input',type=Path,required=True)
-    p.add_argument('--output-dir',type=Path,default=Path('ccf-r41-preview'))
-    p.add_argument('--per-venue',type=int,default=4)
-    args=p.parse_args()
-    if not 1<=args.per_venue<=10:raise SystemExit('per-venue must be 1..10')
-    with args.input.open(encoding='utf-8-sig',newline='') as f:
-        sampled=sample_balanced(list(csv.DictReader(f)),args.per_venue)
-    args.output_dir.mkdir(parents=True,exist_ok=True)
-    results=[];api_key=os.environ.get('OPENALEX_API_KEY','').strip()
-    for i,row in enumerate(sampled,1):
-        results.append(enrich_one(row,openalex_work(row,api_key)))
-        if i%10==0:print(f'Metadata requests {i}/{len(sampled)}',flush=True)
-        time.sleep(0.18)
-    with (args.output_dir/'enriched_candidates.csv').open('w',encoding='utf-8-sig',newline='') as f:
-        writer=csv.DictWriter(f,fieldnames=FIELDS);writer.writeheader();writer.writerows(results)
-    counts=dict(Counter(r['abstract_status'] for r in results))
-    report={'stage':'R4-1','scope':'BOUNDED_ABSTRACT_PREVIEW_NOT_COMPLETE_CCF_CRAWL','sampled':len(sampled),
-       'venues_sampled':len({r['venue'] for r in sampled}),'abstract_counts':counts,
-       'usable_abstracts':counts.get('ABSTRACT_VERIFIED_METADATA',0),'email_sent':False,
-       'caveat':'Source candidates stay PRELIMINARY pending publisher verification.'}
-    (args.output_dir/'enrichment_audit.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
-    print('ENRICHMENT '+json.dumps(report,ensure_ascii=False),flush=True)
-    if report['usable_abstracts']<3:
-        raise SystemExit('Insufficient authentic abstracts for three-paper scoring preview')
-if __name__=='__main__':
-    main()

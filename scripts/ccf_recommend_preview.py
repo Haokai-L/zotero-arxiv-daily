@@ -2,10 +2,8 @@
 
 Never sends email. Raw Zotero reference abstracts are not written to artifacts.
 """
-import argparse,csv,json,os
+import json,os
 from datetime import datetime
-from pathlib import Path
-from ccf_recommend_core import choose
 def in_research_collection(paths):
     return any(p == 'A-NRC-Research' or p.startswith('A-NRC-Research/') for p in paths)
 
@@ -48,25 +46,3 @@ def original_rerank(rows,corpus,*,title_only=False):
     # Reuse upstream scorer's weighted Zotero cosine similarity formula exactly.
     ranked=LocalReranker(cfg).rerank(papers,corpus)
     return [dict(by_identity[id(p)],score=p.score) for p in ranked]
-def main():
-    parser=argparse.ArgumentParser()
-    parser.add_argument('--input',type=Path,required=True)
-    parser.add_argument('--output',type=Path,default=Path('ccf-r41-preview/recommendations.json'))
-    parser.add_argument('--max-corpus',type=int,default=150)
-    args=parser.parse_args()
-    with args.input.open(encoding='utf-8-sig',newline='') as f:
-        rows=[r for r in csv.DictReader(f) if r.get('abstract_status')=='ABSTRACT_VERIFIED_METADATA']
-    corpus=read_corpus()
-    if not rows or len(corpus)<2:raise RuntimeError('No verified abstracts or insufficient Zotero corpus')
-    corpus=sorted(corpus,key=lambda p:p.added_date,reverse=True)[:args.max_corpus]
-    scored=original_rerank(rows,corpus)
-    import yaml
-    settings=yaml.safe_load(Path('config/ccf_recommend.yaml').read_text(encoding='utf-8'))
-    if settings.get('send_enabled') is not False:raise RuntimeError('Email must remain disabled')
-    result=choose(scored,limit=int(settings['daily_max']),margin=float(settings['anrc_score_margin']))
-    result.update(zotero_corpus_count_used=len(corpus),candidate_abstract_count=len(rows))
-    args.output.parent.mkdir(parents=True,exist_ok=True)
-    args.output.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
-    print('ZOTERO_SCORE_PREVIEW '+json.dumps({'selected':len(result['selected']),
-        'corpus_references':len(corpus),'email_sent':False},ensure_ascii=False),flush=True)
-if __name__=='__main__':main()

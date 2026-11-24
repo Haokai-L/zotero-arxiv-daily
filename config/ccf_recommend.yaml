@@ -1,8 +1,0 @@
-# R4-1 preview policy; disabled until reviewed.
-daily_max: 3
-anrc_soft_slot: true
-anrc_score_margin: 0.5
-input_status: PRELIMINARY
-sources_only: ccf_a_venues
-exclude_preprints: true
-send_enabled: false

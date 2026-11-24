@@ -1,7 +1,7 @@
 name: CCF Safety CI (No Email)
 on:
-  push:
-    branches: [feature/ccf-a-daily]
+  pull_request:
+    branches: [main]
     paths:
       - '.github/workflows/ccf-safety-ci.yml'
       - 'scripts/**'
@@ -15,7 +15,6 @@ concurrency:
   cancel-in-progress: true
 jobs:
   offline-regression:
-    if: github.ref == 'refs/heads/feature/ccf-a-daily'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -34,4 +33,4 @@ jobs:
         run: |
           grep -q 'send_enabled: false' config/ccf_r5_mail.yaml
           grep -q 'preview_only: true' config/ccf_r5_mail.yaml
-          test -z "$(git status --porcelain -- data/ccf_sent_history.json data/ccf_delivery_ledger.json)"
+          test -z "$(git status --porcelain -- data/ccf_candidate_state.json data/ccf_delivery_ledger.json)"

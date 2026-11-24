@@ -1,4 +1,4 @@
-"""Single CCF execution entrypoint. Preview is the default; TEST requires manual approval.
+"""Single CCF execution entrypoint. Production delivery is restricted to the default branch.
 
 No publication-age bonus. A bounded title-similarity shortlist limits external
 abstract requests; actual abstracts determine the final upstream Zotero scores.
@@ -24,7 +24,7 @@ from ccf_r5_mail import build as make_mail
 ROOT=Path(__file__).resolve().parents[1]
 CONFIG=ROOT/"config"
 DATA=ROOT/"data"
-DEV="feature/ccf-a-daily"
+BRANCH="main"
 
 def load(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -95,8 +95,8 @@ def recommend(rows,corpus,whitelist,history,ledger,*,rank,abstract,verify,shortl
     return choose(valid, sent_keys=reserved_keys(ledger,history),limit=3)["selected"]
 
 def checkpoint(state,path,branch):
-    if os.environ.get("GITHUB_REF")!="refs/heads/"+branch or branch!=DEV:
-        raise SafetyError("Candidate checkpoint restricted to reviewed development branch")
+    if os.environ.get("GITHUB_REF")!="refs/heads/"+branch or branch!=BRANCH:
+        raise SafetyError("Candidate checkpoint restricted to main")
     path.write_text(json.dumps(state,ensure_ascii=False,sort_keys=True,separators=(",",":"))+"\n",encoding="utf-8")
     def git(*args):
         return subprocess.check_output(["git",*args],cwd=ROOT,text=True).strip()
@@ -113,20 +113,21 @@ def checkpoint(state,path,branch):
         raise SafetyError("Candidate checkpoint was not confirmed")
 
 def run(mode,out):
-    if mode not in ("preview","test"):raise SafetyError("Daily sending not approved")
-    if mode=="test" and (os.environ.get("GITHUB_EVENT_NAME")!="workflow_dispatch"
-                        or os.environ.get("CCF_SMTP_AUTHORIZATION")!="TEST_ONLY"):
-        raise SafetyError("TEST requires a manually dispatched authorized workflow")
-    if os.environ.get("GITHUB_REF")!="refs/heads/"+DEV:
-        raise SafetyError("Development branch required")
+    if mode not in ("preview","daily"):raise SafetyError("Invalid execution mode")
+    if mode=="daily" and (os.environ.get("GITHUB_EVENT_NAME") not in ("schedule","workflow_dispatch")
+                          or os.environ.get("CCF_SMTP_AUTHORIZATION")!="DAILY_APPROVED"
+                          or os.environ.get("GITHUB_REPOSITORY")!="Haokai-L/zotero-arxiv-daily"):
+        raise SafetyError("Daily sending requires the approved repository and trigger")
+    if os.environ.get("GITHUB_REF")!="refs/heads/"+BRANCH:
+        raise SafetyError("Main branch required")
     today=datetime.now(ZoneInfo("Asia/Taipei")).date()
-    history=load(DATA/"ccf_sent_history.json")
+    history={"schema_version":1,"sent_keys":[]}  # Ledger is the only persistent sent history.
     ledger=load(DATA/"ccf_delivery_ledger.json")
     check_ledger(ledger)
     if any(b["state"] in PENDING for b in ledger["batches"].values()):
         raise SafetyError("Unresolved delivery: check mailbox and reconcile first")
-    if mode=="test" and any(b["day"]==today.isoformat() for b in ledger["batches"].values()):
-        print("Already a batch today; no duplicate TEST");return
+    if mode=="daily" and any(b["day"]==today.isoformat() for b in ledger["batches"].values()):
+        print("CCF_ALREADY_SENT_TODAY; no duplicate email",flush=True);return
     whitelist=yaml.safe_load((CONFIG/"ccf_a_venues.yaml").read_text())["venues"]
     maps=conference_maps()
     map_year=max(y for y in maps if y<=today.year)
@@ -134,11 +135,13 @@ def run(mode,out):
         work=Path(temp)
         state_path=work/"candidates.json"
         state_path.write_bytes((DATA/"ccf_candidate_state.json").read_bytes())
-        report=discovery.run(state_path,DATA/"ccf_sent_history.json",None,
+        history_path=work/"sent_history.json"
+        history_path.write_text(json.dumps({"schema_version":1,"sent_keys":sorted(accepted_keys(ledger,history))}),encoding="utf-8")
+        discovery.run(state_path,history_path,None,
             CONFIG/"ccf_a_venues.yaml",CONFIG/"journal_source_map.yaml",
             maps[map_year][0],work/"discovery",today)
         state=prune(load(state_path),history,ledger,today)
-        checkpoint(state,DATA/"ccf_candidate_state.json",DEV)
+        checkpoint(state,DATA/"ccf_candidate_state.json",BRANCH)
         rows=eligible(state,whitelist,history,ledger,today)
         if not rows:
             print("No eligible papers; no email");return
@@ -170,21 +173,21 @@ def run(mode,out):
                         cfg,whitelist,out,today=today.isoformat(),mode=mode)
         if audit["deepseek_generated"]!=len(selected):
             raise SafetyError("Chinese summary unavailable; no submission")
-        if mode=="test":
+        if mode=="daily":
             from ccf_send_engine import MailCoordinator, ProductionLedgerStore, GithubTransport, REPO
             from ccf_smtp_submission import SmtpSender
-            store=ProductionLedgerStore(REPO,DEV,GithubTransport(os.environ["GITHUB_TOKEN"]),writes_approved=True)
-            sender=SmtpSender(test_mode=True)
+            store=ProductionLedgerStore(REPO,BRANCH,GithubTransport(os.environ["GITHUB_TOKEN"]),writes_approved=True)
+            sender=SmtpSender(test_mode=False)
             result=MailCoordinator(store,sender,submission_approved=True).deliver(
                 history,selected,today.isoformat(),(out/"email_preview.html").read_bytes())
-            print("CCF_TEST_SUBMISSION",result.state,flush=True)
+            print("CCF_DAILY_SUBMISSION",result.state,flush=True)
             if not result.server_accepted:raise SafetyError("SMTP acceptance unconfirmed; do not retry")
         else:
             print("CCF_PREVIEW_COMPLETE",len(selected),"SMTP_NOT_CALLED",flush=True)
 
 if __name__=="__main__":
     p=argparse.ArgumentParser()
-    p.add_argument("--mode",choices=("preview","test"),default="preview")
+    p.add_argument("--mode",choices=("preview","daily"),default="preview")
     p.add_argument("--out",type=Path,default=Path("ccf-output"))
     a=p.parse_args()
     run(a.mode,a.out)

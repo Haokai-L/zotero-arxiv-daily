@@ -201,14 +201,3 @@ def run(args):
     print('R6_SOURCE_AUDIT '+json.dumps(report,ensure_ascii=False),flush=True)
     if not verified:raise SystemExit('No independently verified candidates; fail closed.')
 
-def main():
-    p=argparse.ArgumentParser()
-    p.add_argument('--state',type=Path,default=ROOT/'data/ccf_candidate_state.json')
-    p.add_argument('--whitelist',type=Path,default=ROOT/'config/ccf_a_venues.yaml')
-    p.add_argument('--journals',type=Path,default=ROOT/'config/journal_source_map.yaml')
-    p.add_argument('--conf25',type=Path,default=ROOT/'config/conference_source_map.yaml')
-    p.add_argument('--conf26',type=Path,default=ROOT/'config/ccf_incremental_2026.yaml')
-    p.add_argument('--output',type=Path,default=ROOT/'ccf-r6-audit')
-    p.add_argument('--per-venue',type=int,default=5)
-    run(p.parse_args())
-if __name__=='__main__':main()

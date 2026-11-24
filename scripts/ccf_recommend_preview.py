@@ -6,6 +6,9 @@ import argparse,csv,json,os
 from datetime import datetime
 from pathlib import Path
 from ccf_recommend_core import choose
+def in_research_collection(paths):
+    return any(p == 'A-NRC-Research' or p.startswith('A-NRC-Research/') for p in paths)
+
 def read_corpus():
     from pyzotero import zotero
     from zotero_arxiv_daily.protocol import CorpusPaper
@@ -31,8 +34,8 @@ def read_corpus():
         except (KeyError,ValueError):continue
         corpus.append(CorpusPaper(title=data['title'],abstract=data['abstractNote'],added_date=added,
             paths=[path for k in data.get('collections',[]) if (path:=collection_path(k))]))
-    return corpus
-def original_rerank(rows,corpus):
+    return [p for p in corpus if in_research_collection(p.paths)]
+def original_rerank(rows,corpus,*,title_only=False):
     from omegaconf import OmegaConf
     from zotero_arxiv_daily.protocol import Paper
     from zotero_arxiv_daily.reranker.local import LocalReranker
@@ -40,7 +43,7 @@ def original_rerank(rows,corpus):
         'reranker':{'local':{'model':'jinaai/jina-embeddings-v5-text-nano-retrieval',
             'encode_kwargs':{'task':'retrieval','prompt_name':'document'}}}})
     papers=[Paper(source=r['venue'],title=r['title'],authors=json.loads(r.get('authors') or '[]'),
-       abstract=r['abstract'],url=r['paper_url'],pdf_url=r.get('pdf_url') or None) for r in rows]
+       abstract=r['title'] if title_only else r['abstract'],url=r['paper_url'],pdf_url=r.get('pdf_url') or None) for r in rows]
     by_identity={id(p):r for p,r in zip(papers,rows)}
     # Reuse upstream scorer's weighted Zotero cosine similarity formula exactly.
     ranked=LocalReranker(cfg).rerank(papers,corpus)

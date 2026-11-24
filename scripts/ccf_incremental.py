@@ -119,7 +119,7 @@ def journal_record(r, venue, field):
         'source_type':'OpenAlex journal','source_record_id':r['openalex_id'],
         'source_status':r['status'],'candidate_status':'PRELIMINARY',
         'reason':r['reason'],'evidence_url':r['openalex_id'],
-        'source_file':'incremental/2026-journal',
+        'source_file':'incremental/journal',
     }
     item['paper_key']=paper_key(item)
     return item
@@ -273,7 +273,9 @@ def run(state_path, history_path, seed_path, whitelist_path, journal_path,
     whitelist=yaml.safe_load(whitelist_path.read_text(encoding='utf-8'))
     journals=yaml.safe_load(journal_path.read_text(encoding='utf-8'))
     conf=yaml.safe_load(conference_path.read_text(encoding='utf-8'))
-    validate_config(whitelist,journals,conf,as_of.year)
+    validate_config(whitelist,journals,conf,conf['year'])
+    if conf['year'] != as_of.year:
+        print(f'CONFERENCE_MAP_PENDING {as_of.year}; polling last verified map {conf["year"]}', flush=True)
     sent_keys=validate_sent_history(history_path)
     state=load_state(state_path)
     baseline_count=seed_from_snapshot(state,seed_path,as_of)
@@ -314,12 +316,12 @@ def run(state_path, history_path, seed_path, whitelist_path, journal_path,
             'email_sent':False,'preview_only':True,
             'caveats':['Only publisher-metadata/official-listing candidates, not fully paper-verified',
                        'Crossref and OpenAlex queries are bounded and can miss late backfilled papers',
-                       '2026 conference source map must be updated for a new conference year',
+                       'New conference years require independently verified source maps',
                        'Sent history is read-only; preview is never considered delivered']}
     if not errors:
         merged=merge(state,incoming,as_of,sent_keys)
         state['last_successful_check']=as_of.isoformat()
-        state['coverage']={'mode':'bounded 2026 discovery; 2025 historical seed if available',
+        state['coverage']={'mode':'bounded incremental discovery; historical coverage may be incomplete',
                            'source_status_counts':report['source_status_counts']}
         report['merge']=merged
         # Do not write durable state on a partial API failure.

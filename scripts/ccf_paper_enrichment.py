@@ -11,7 +11,7 @@ from collections import Counter,defaultdict
 from difflib import SequenceMatcher
 from pathlib import Path
 from urllib.error import HTTPError,URLError
-from urllib.parse import quote,urlparse
+from urllib.parse import quote,urlparse,urlencode
 from urllib.request import Request,urlopen
 from ccf_recommend_core import normalize_title
 FIELDS=['paper_key','venue','field','year','title','doi','paper_url','pdf_url','candidate_status','source_status','source_record_id','evidence_url','authors','abstract','abstract_status','abstract_evidence_url']
@@ -30,8 +30,10 @@ def openalex_work(row,api_key):
     elif doi:
         ident='https://doi.org/'+doi
     else:
-        return None
-    url='https://api.openalex.org/works/'+quote(ident,safe='/:')
+        # DOI-less official proceedings: use exact normalized title and year, never a fuzzy-only match.
+        ident=None
+    url=('https://api.openalex.org/works/'+quote(ident,safe='/:') if ident else
+         'https://api.openalex.org/works?'+urlencode({'search':row['title'], 'filter':'publication_year:'+str(row['year']), 'per_page':10}))
     headers={'Accept':'application/json','User-Agent':'CCF-R41-Abstract-Audit/1.0'}
     if api_key:headers['Authorization']='Bearer '+api_key
     for attempt in range(3):
@@ -39,7 +41,10 @@ def openalex_work(row,api_key):
             with urlopen(Request(url,headers=headers),timeout=16) as response:
                 if 'json' not in response.headers.get('Content-Type','').lower():
                     raise RuntimeError('Unexpected content type')
-                return json.load(response)
+                data=json.load(response)
+                if ident:return data
+                matches=[w for w in data.get('results',[]) if normalize_title(w.get('display_name') or w.get('title'))==normalize_title(row['title']) and str(w.get('publication_year'))==str(row['year'])]
+                return matches[0] if len(matches)==1 else None
         except HTTPError as exc:
             if exc.code==404:return None
             if exc.code not in (429,500,502,503,504):return None

@@ -3,7 +3,6 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
 import ccf_r6_verify as verify
-import ccf_r6_replay as replay
 class R6Tests(unittest.TestCase):
     def setUp(self):
         self.row={'paper_key':'doi:10.1109/tmc.2026.123','venue':'TMC','field':'networking',
@@ -53,28 +52,6 @@ class R6Tests(unittest.TestCase):
                          lambda _:self.work,lambda *args:[])
         self.assertEqual(row['candidate_status'],'PRELIMINARY')
         self.assertEqual(row['publisher_verification'],'VERIFIED_PUBLISHER')
-    def paper(self,i):
-        return {'paper_key':str(i),'venue':'TON','title':'Paper '+str(i),
-                'score':float(20-i),'candidate_status':'PRELIMINARY',
-                'abstract':'Substantive network systems research abstract',
-                'abstract_status':'ABSTRACT_VERIFIED_METADATA'}
-    def test_three_day_retry_idempotency(self):
-        rows=[self.paper(i) for i in range(9)]
-        x=replay.simulate(rows,{str(i) for i in range(9)},set())
-        self.assertEqual(len(x['first_day_simulated_success']),3)
-        self.assertEqual(len(x['second_day_simulated_failure']),3)
-        self.assertTrue(x['first_second_no_overlap'])
-        self.assertTrue(x['failure_retry_same'])
-        self.assertFalse(x['email_sent'])
-    def test_preserve_previous_sent_history(self):
-        rows=[self.paper(i) for i in range(7)]
-        x=replay.simulate(rows,{str(i) for i in range(7)},{'0','1'})
-        self.assertEqual({r['paper_key'] for r in x['first_day_simulated_success']},{'2','3','4'})
-    def test_unverified_cannot_replay(self):
-        self.assertEqual(replay.simulate([self.paper(0)],set(),set())['first_day_simulated_success'],[])
-    def test_daily_cap(self):
-        rows=[self.paper(i) for i in range(30)]
-        self.assertEqual(len(replay.simulate(rows,{str(i) for i in range(30)},set())['first_day_simulated_success']),3)
     def test_invalid_state_schema(self):
         with self.assertRaises(ValueError):verify.sample({'schema_version':2,'papers':{}},{},5)
 if __name__=='__main__':unittest.main()

@@ -89,7 +89,7 @@ def line_link(url,label):
     safe=safe_link(url)
     return f'<a href="{html.escape(safe,quote=True)}" style="color:#1763ae">{html.escape(label)}</a>' if safe else ''
 
-def render_html(items, summary_status, today):
+def render_html(items, summary_status, today, mode='preview'):
     cards=[]
     for idx,p in enumerate(items,1):
         title=html.escape(str(p.get('title') or ''))
@@ -123,12 +123,17 @@ def render_html(items, summary_status, today):
     note=('本邮件仅为预览，未发送；所列论文已完成独立来源元数据核验（DOI/出版社或会议官网），'
           '但不代表已人工通读全文。' if independently_verified
           else '本邮件仅为预览，未发送；论文为 CCF A 类来源的元数据初筛候选，尚未逐篇完成出版社复核。')
+    if mode == 'test':
+        note = 'TEST 测试邮件；已核验正式论文来源，不代表人工通读全文。'
+    elif mode == 'daily':
+        note = '已核验正式论文来源，不代表人工通读全文。'
+    heading = {'preview':'CCF A 类论文 · 每日推荐预览','test':'[TEST] CCF A 类论文 · 每日推荐','daily':'CCF A 类论文 · 每日推荐'}[mode]
     return '''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>CCF 每日论文推荐预览</title></head>
     <body style="font-family:Arial,'Microsoft YaHei',sans-serif;background:#f8fafc;color:#172538">
     <main style="max-width:760px;margin:32px auto;padding:18px;background:white;border-radius:12px">
-    <h1 style="font-size:23px">CCF A 类论文 · 每日推荐预览</h1>'''+f'<p>{html.escape(today)} · 共 {len(items)} 篇 · 中文摘要状态：{html.escape(summary_status)}</p>'+''.join(cards)+f'<p style="font-size:12px;color:#7b8797">{html.escape(note)}</p></main></body></html>'
+    <h1 style="font-size:23px">'''+html.escape(heading)+'''</h1>'''+f'<p>{html.escape(today)} · 共 {len(items)} 篇 · 中文摘要状态：{html.escape(summary_status)}</p>'+''.join(cards)+f'<p style="font-size:12px;color:#7b8797">{html.escape(note)}</p></main></body></html>'
 
-def build(recommendations, config, whitelist, out_dir, env=None, client=None, today=None):
+def build(recommendations, config, whitelist, out_dir, env=None, client=None, today=None, mode='preview'):
     if config.get('send_enabled') is not False or config.get('preview_only') is not True or config.get('daily_max')!=3:
         raise ValueError('Email preview config must be disabled and capped at three')
     rows=valid_selected(recommendations,whitelist)
@@ -153,7 +158,7 @@ def build(recommendations, config, whitelist, out_dir, env=None, client=None, to
                else 'PRELIMINARY_NOT_INDEPENDENTLY_PUBLISHER_VERIFIED'),
            'production_ready':False}
     out_dir=Path(out_dir);out_dir.mkdir(parents=True,exist_ok=True)
-    (out_dir/'email_preview.html').write_text(render_html(result,'DeepSeek 成功' if success==len(result) else '部分或全部未生成',today),encoding='utf-8')
+    (out_dir/'email_preview.html').write_text(render_html(result,'DeepSeek 成功' if success==len(result) else '部分或全部未生成',today,mode),encoding='utf-8')
     (out_dir/'email_preview.json').write_text(json.dumps({'audit':audit,'selected':result},ensure_ascii=False,indent=2),encoding='utf-8')
     (out_dir/'summary_audit.json').write_text(json.dumps(audit,ensure_ascii=False,indent=2),encoding='utf-8')
     return audit

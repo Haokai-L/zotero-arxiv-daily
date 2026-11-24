@@ -1,9 +1,4 @@
-"""R6-4 GitHub Contents-API optimistic-CAS ledger transport.
-
-This module has NO SMTP code and is locked to synthetic test-only probe files.
-It deliberately never writes data/ccf_sent_history.json or production ledger.
-Remote acceptance is verified by reading back the resulting blob.
-"""
+"""Shared GitHub optimistic-CAS transport for delivery state."""
 from __future__ import annotations
 
 import base64
@@ -18,9 +13,6 @@ from urllib.request import Request, urlopen
 
 from ccf_r63_delivery import SafetyError, check_ledger
 
-BRANCH = "feature/ccf-a-daily"
-PROBE_PATH = re.compile(r"^data/r64_probes/[0-9]{6,20}-[0-9]{1,3}\.json$")
-REPO_PATH = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 API_ORIGIN = "https://api.github.com"
 
 
@@ -63,7 +55,7 @@ class GithubTransport:
             "Accept": "application/vnd.github+json",
             "Authorization": "Bearer " + self._token,
             "X-GitHub-Api-Version": "2022-11-28",
-            "User-Agent": "ccf-r64-no-email-persistence-probe",
+            "User-Agent": "ccf-delivery",
             "Content-Type": "application/json"
         })
         try:
@@ -79,63 +71,3 @@ class GithubTransport:
         except (URLError, TimeoutError, OSError) as exc:
             raise PersistenceError("GitHub transport unavailable: " + type(exc).__name__) from None
 
-
-class ProbeStore:
-    """Write allowlist applies to *all* operations, not just command entrypoint."""
-
-    def __init__(self, repo, branch, path, transport):
-        if not isinstance(repo, str) or not REPO_PATH.fullmatch(repo):
-            raise SafetyError("Invalid repository name")
-        if branch != BRANCH or not isinstance(path, str) or not PROBE_PATH.fullmatch(path):
-            raise SafetyError("R6-4 writes only isolated probe files on feature branch")
-        if transport is None:
-            raise SafetyError("Transport required")
-        self.repo, self.branch, self.path, self.transport = repo, branch, path, transport
-        self.route = "/repos/" + repo + "/contents/" + quote(path, safe="/")
-
-    def read(self):
-        raw = self.transport.request("GET", self.route + "?ref=" + quote(self.branch, safe=""))
-        if raw is None:
-            return None
-        if not isinstance(raw, dict) or raw.get("encoding") != "base64":
-            raise PersistenceError("GitHub content encoding is not base64")
-        sha = raw.get("sha")
-        if not isinstance(sha, str) or not re.fullmatch(r"[a-f0-9]{40}", sha):
-            raise PersistenceError("GitHub returned invalid blob SHA")
-        try:
-            binary = base64.b64decode(raw["content"], validate=False)
-            ledger = json.loads(binary)
-            check_ledger(ledger)
-        except (KeyError, ValueError, TypeError, SafetyError) as exc:
-            raise PersistenceError("GitHub ledger is unreadable or invalid") from exc
-        return Snapshot(ledger, sha)
-
-    def write(self, ledger, expected_sha, reason):
-        content = canonical_bytes(ledger)
-        if expected_sha is not None and (not isinstance(expected_sha, str) or
-                                         not re.fullmatch(r"[a-f0-9]{40}", expected_sha)):
-            raise SafetyError("Invalid expected blob SHA")
-        if not isinstance(reason, str) or not reason or len(reason) > 100:
-            raise SafetyError("Invalid persistence reason")
-        payload = {
-            "message": "test(r6-4): " + reason + " [skip ci]",
-            "content": base64.b64encode(content).decode("ascii"),
-            "branch": self.branch
-        }
-        if expected_sha is not None:
-            payload["sha"] = expected_sha
-        reply = self.transport.request("PUT", self.route, payload)
-        new_sha = (reply or {}).get("content", {}).get("sha")
-        if not isinstance(new_sha, str):
-            raise PersistenceError("GitHub did not return a committed file SHA")
-        # A successful PUT alone isn't sufficient: re-read remote HEAD.
-        current = self.read()
-        if current is None or current.sha != new_sha:
-            raise PersistenceError("GitHub read-after-write SHA mismatch")
-        if canonical_bytes(current.ledger) != content:
-            raise PersistenceError("GitHub read-after-write contents mismatch")
-        return current
-
-
-def sha256_file(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()

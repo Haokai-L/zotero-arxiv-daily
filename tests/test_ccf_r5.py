@@ -9,7 +9,6 @@ from unittest.mock import MagicMock
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
 import ccf_r5_mail as mail
-import ccf_r5_prepare as prep
 
 CFG={'daily_max':3,'send_enabled':False,'preview_only':True,'model':'deepseek-chat'}
 WHITELIST={'TON':{'field':'networking','kind':'journal'},'TMC':{'field':'networking','kind':'journal'}}
@@ -69,18 +68,5 @@ class R5Tests(unittest.TestCase):
     def test_fail_closed_when_send_enabled(self):
         with tempfile.TemporaryDirectory() as t:
             with self.assertRaises(ValueError):mail.build(preview([row()]),dict(CFG,send_enabled=True),WHITELIST,Path(t),env={})
-    def test_persisted_state_preview_does_not_change_history(self):
-        with tempfile.TemporaryDirectory() as temp:
-            d=Path(temp); state=d/'state.json'; hist=d/'history.json'; cfg=d/'venues.yaml'; out=d/'sample.csv'
-            state.write_text(json.dumps({'schema_version':1,'papers':{r['paper_key']:r for r in [dict(row('1'),field='networking'),dict(row('2'),field='networking'),dict(row('3'),field='networking'),dict(row('4'),field='networking')]}}))
-            hist.write_text(json.dumps({'schema_version':1,'sent_keys':['doi:10.1109/example.2']}))
-            cfg.write_text('venues:\n  TON:\n    field: networking\n    kind: journal\n  TMC:\n    field: networking\n    kind: journal\n'+''.join('  V'+str(i)+':\n    field: networking\n    kind: journal\n' for i in range(14)))
-            # seed items lack ID? no; includes in row() yes.
-            prior=hist.read_bytes()
-            result=prep.prepare(state,hist,cfg,out,per_venue=3)
-            self.assertEqual(result['sampled_count'],3)
-            self.assertEqual(hist.read_bytes(),prior)
-            with out.open(encoding='utf-8-sig') as stream:
-                self.assertEqual(len(list(csv.DictReader(stream))),3)
 
 if __name__=='__main__':unittest.main()

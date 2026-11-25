@@ -15,7 +15,7 @@
       "state": "SMTP_ACCEPTED"
     },
     "f6f8e246977a8da04a802db4": {
-      "attempts": 0,
+      "attempts": 1,
       "content_sha256": "74ca813f16cafc7117cb4ed111d3e14f1a4ad5c87788abf1e1625d2647b8cab4",
       "day": "2026-11-25",
       "id": "f6f8e246977a8da04a802db4",
@@ -24,9 +24,9 @@
         "doi:10.1145/3718958.3754343",
         "doi:10.1145/3789240.3830299"
       ],
-      "last_event": "PREPARED_OFFLINE",
+      "last_event": "HANDOFF_MAY_HAVE_STARTED",
       "smtp_ack": false,
-      "state": "PREPARED"
+      "state": "ATTEMPTING"
     }
   },
   "note": "Only production-approved sender may persist PREPARED/ATTEMPTING/SMTP_ACCEPTED. Dry-run MUST NOT update this file.",

@@ -24,9 +24,9 @@
         "doi:10.1145/3718958.3754343",
         "doi:10.1145/3789240.3830299"
       ],
-      "last_event": "HANDOFF_MAY_HAVE_STARTED",
-      "smtp_ack": false,
-      "state": "ATTEMPTING"
+      "last_event": "SERVER_ACCEPTED_SUBMISSION",
+      "smtp_ack": true,
+      "state": "SMTP_ACCEPTED"
     }
   },
   "note": "Only production-approved sender may persist PREPARED/ATTEMPTING/SMTP_ACCEPTED. Dry-run MUST NOT update this file.",

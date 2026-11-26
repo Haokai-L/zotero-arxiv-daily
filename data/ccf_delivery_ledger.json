@@ -10,9 +10,9 @@
         "doi:10.1109/infocom59046.2026.11571519",
         "doi:10.1145/3789240.3828741"
       ],
-      "last_event": "HANDOFF_MAY_HAVE_STARTED",
-      "smtp_ack": false,
-      "state": "ATTEMPTING"
+      "last_event": "SERVER_ACCEPTED_SUBMISSION",
+      "smtp_ack": true,
+      "state": "SMTP_ACCEPTED"
     },
     "e9a1acca88f449d24bd87540": {
       "attempts": 1,

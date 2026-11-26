@@ -1,7 +1,7 @@
 {
   "batches": {
     "256a2d61effd52e697d546a7": {
-      "attempts": 0,
+      "attempts": 1,
       "content_sha256": "4841ade2082fcea08c3dd87f553643bcaa8cee6020dca79b8e08d5cd6c908093",
       "day": "2026-11-26",
       "id": "256a2d61effd52e697d546a7",
@@ -10,9 +10,9 @@
         "doi:10.1109/infocom59046.2026.11571519",
         "doi:10.1145/3789240.3828741"
       ],
-      "last_event": "PREPARED_OFFLINE",
+      "last_event": "HANDOFF_MAY_HAVE_STARTED",
       "smtp_ack": false,
-      "state": "PREPARED"
+      "state": "ATTEMPTING"
     },
     "e9a1acca88f449d24bd87540": {
       "attempts": 1,

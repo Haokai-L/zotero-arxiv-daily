@@ -1,5 +1,19 @@
 {
   "batches": {
+    "07f882a37b780f1271e94495": {
+      "attempts": 0,
+      "content_sha256": "6d271662b074b58c03954f17a09ae2a52ea5f9ede5f51ebd9df3635c2a54dcbc",
+      "day": "2026-11-27",
+      "id": "07f882a37b780f1271e94495",
+      "keys": [
+        "doi:10.1109/infocom59046.2026.11571349",
+        "doi:10.1109/tmc.2026.3735391",
+        "url:https://www.ndss-symposium.org/ndss-paper/heimdall-towards-risk-aware-network-management-outsourcing"
+      ],
+      "last_event": "PREPARED_OFFLINE",
+      "smtp_ack": false,
+      "state": "PREPARED"
+    },
     "256a2d61effd52e697d546a7": {
       "attempts": 1,
       "content_sha256": "4841ade2082fcea08c3dd87f553643bcaa8cee6020dca79b8e08d5cd6c908093",

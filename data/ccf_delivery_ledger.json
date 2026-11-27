@@ -10,9 +10,9 @@
         "doi:10.1109/tmc.2026.3735391",
         "url:https://www.ndss-symposium.org/ndss-paper/heimdall-towards-risk-aware-network-management-outsourcing"
       ],
-      "last_event": "HANDOFF_MAY_HAVE_STARTED",
-      "smtp_ack": false,
-      "state": "ATTEMPTING"
+      "last_event": "SERVER_ACCEPTED_SUBMISSION",
+      "smtp_ack": true,
+      "state": "SMTP_ACCEPTED"
     },
     "256a2d61effd52e697d546a7": {
       "attempts": 1,

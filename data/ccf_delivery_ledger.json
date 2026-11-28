@@ -28,6 +28,20 @@
       "smtp_ack": true,
       "state": "SMTP_ACCEPTED"
     },
+    "e57fce1b485490525b43c4e3": {
+      "attempts": 0,
+      "content_sha256": "45a4f53fd1ee3663767aaaf3301916358a8f0055970b7e8399816717ebdeb0a8",
+      "day": "2026-11-28",
+      "id": "e57fce1b485490525b43c4e3",
+      "keys": [
+        "doi:10.1145/3789240.3829163",
+        "doi:10.1145/3830454.3846716",
+        "url:https://www.usenix.org/conference/nsdi25/presentation/ekane"
+      ],
+      "last_event": "PREPARED_OFFLINE",
+      "smtp_ack": false,
+      "state": "PREPARED"
+    },
     "e9a1acca88f449d24bd87540": {
       "attempts": 1,
       "content_sha256": "d86fe2a81287e6a778f222059759780db12a426c0ef30fe7fe7bb598787f9df0",
